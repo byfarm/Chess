@@ -1,4 +1,6 @@
 import numpy as np
+import tensorflow as tf
+from tensorflow.keras import layers
 import chess
 
 
@@ -45,11 +47,3 @@ def to_bits(board: object):
 		bitboard[i, :, :] = bit_dictionary[key]
 
 	return bitboard
-
-
-def position_evaluation(board: np.ndarray):
-	"""
-	evaluates the current board position
-	:return:
-	"""
-	pass
