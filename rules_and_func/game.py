@@ -202,7 +202,7 @@ class MachineBoard:
 		# outputs legal moves, c_moves: check moves, and capturing squares
 		return legal_moves, c_moves, cap
 
-	def play_machine_move(self, move: tuple):
+	def play_machine_move(self, move: list[tuple, bool, list[bool, object, list[tuple]]]):
 		"""
 		actually makes the move
 		:param move: tuple
@@ -647,6 +647,7 @@ class MachineBoard:
 		# if there are no pieces left in play
 		elif len(pieces_in_play) == 0:
 			self.stalemate = True
+			return
 		#	self.print_board("Insufficient Material")
 		# if there are two pieces left and they are both nights or bishops and they are on opposing sides
 		elif len(pieces_in_play) == 2 and (len(piece_dictionary['N']) == 2 or len(piece_dictionary['B']) == 2) and len(w_pieces) == 1:

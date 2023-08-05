@@ -29,7 +29,7 @@ def sort_node_scores(tree: object):
 	# create a score tuple, then sort it high to low
 	scores: list = []
 	for node in tree.game_nodes:
-		score_tup = (node.score, node)
+		score_tup = (node.wins, node)
 		scores.append(score_tup)
 	s_scores, s_nodes = insert_sort_h_to_l(scores)
 	return s_scores, s_nodes
