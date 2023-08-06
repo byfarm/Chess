@@ -1,6 +1,6 @@
 import copy
 import numpy as np
-from ai_train import policy_network, value_network
+from ai_train import POLICY_NETWORK, VALUE_NETWORK
 import AI.ai as ai
 import random
 import math
@@ -10,9 +10,10 @@ class Game_Node(object):
 	"""
 	the game node object for each game state
 	"""
-
-
 	def __init__(self, game: object, move: list=None, parent_node: object=None):
+		# TODO: the policy vector should include the ucb1 score, the output from the policy NN, and the value evaluation
+		# this means do not make the policy vector unless it is a chosed leaf node because then must init all children.
+		# make the policy call outside the init method
 		"""
 		:param game: the game state
 		:param move: the move taken to reach this game state
@@ -30,11 +31,11 @@ class Game_Node(object):
 
 		# get the evaluation
 		self.bitboard = ai.to_bits(game)
-		self.value_evaluation = value_network.predict(self.bitboard)[0, 0]
+		self.value_evaluation = VALUE_NETWORK.predict(self.bitboard)[0, 0]
 
 		# get the policy vector
 		number_possible_moves = len(game.legal_moves)
-		self.policy_vector = list(policy_network.predict(self.bitboard)[0, :])
+		self.policy_vector = list(POLICY_NETWORK.predict(self.bitboard)[0, :])
 		self.policy_vector_legal_moves = list(self.policy_vector[:number_possible_moves] / sum(self.policy_vector[:number_possible_moves]))
 
 		self.number_of_visits = 0
@@ -77,25 +78,26 @@ class Game_Node(object):
 		return self.game.legal_moves[move_index]
 
 
-def back_propagate(node: object, result: bool):
+def back_propagate(node: object, result: float, leaf_move_turn: str):
 	"""
 	back propagates through network and updates if white won or not
+	:param leaf_move_turn: the color of the leaf node
 	:param node: the leaf node object
 	:param result: the white_wins result
 	:return none
 	"""
 	while node:
 		node.number_of_visits += 1
-		if node.game.move_turn == 'w':
-			if result:
+		if node.game.move_turn == leaf_move_turn:
+			if result > 0.75:
 				node.wins += 1
 		else:
-			if result is False:
+			if result < 0.25:
 				node.wins += 1
 		node = node.parent_node
 
 
-def MCTS(game: object=None, starting_node: object=None, iterations: int=2) -> list:
+def MCTS(game: object=None, starting_node: object=None, iterations: int=2) -> object:
 	"""
 	the monte carlo tree search from a game position
 	:param starting_node: if the tree has already been init, then use this to keep the existing nodes
@@ -141,8 +143,8 @@ def MCTS(game: object=None, starting_node: object=None, iterations: int=2) -> li
 		leaf = Game_Node(selected_game_state, move=selected_move, parent_node=parent_game_node)
 		root.visited_boards.append(selected_game_state.board)
 		root.child_nodes.append(leaf)
-		white_win = leaf.random_game_simulation()
-		back_propagate(leaf, white_win)
+		self_win = leaf.value_evaluation
+		back_propagate(leaf, self_win, leaf.game.move_turn)
 
 	return root
 
