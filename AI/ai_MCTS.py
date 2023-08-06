@@ -4,14 +4,12 @@ from ai_train import policy_network, value_network
 import AI.ai as ai
 import random
 import math
-
+# TODO: write better code
 
 class Game_Node(object):
 	"""
 	the game node object for each game state
 	"""
-
-
 	def __init__(self, game: object, move: list=None, parent_node: object=None):
 		"""
 		:param game: the game state
@@ -79,23 +77,39 @@ class Game_Node(object):
 
 def back_propagate(node: object, result: bool):
 	"""
-	back propagates through network and updates if white won or not
+	back propagates through network and updates if white won or not. Also updates the value network as it goes through
 	:param node: the leaf node object
 	:param result: the white_wins result
 	:return none
 	"""
 	while node:
 		node.number_of_visits += 1
+
+		# add the number of wins and find the outcome
 		if node.game.move_turn == 'w':
 			if result:
+				outcome_float = 1.0
 				node.wins += 1
+			elif result is False:
+				outcome_float = 0.0
+			else:
+				outcome_float = 0.5
 		else:
 			if result is False:
+				outcome_float = 1.0
 				node.wins += 1
+			elif result:
+				outcome_float = 0.0
+			else:
+				outcome_float = 0.5
+
+		# fit the value network to that outcome and move to the parent node
+		value_network.fit(node.bitboard, np.array([outcome_float]))
+		print(f'\nGame outcome: {outcome_float}\nOriginal prediction: {node.value_evaluation}\n')
 		node = node.parent_node
 
 
-def MCTS(game: object=None, starting_node: object=None, iterations: int=2) -> list:
+def MCTS(game: object=None, starting_node: object=None, iterations: int=2) -> object:
 	"""
 	the monte carlo tree search from a game position
 	:param starting_node: if the tree has already been init, then use this to keep the existing nodes

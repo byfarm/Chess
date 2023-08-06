@@ -61,9 +61,9 @@ def to_bits(board: object) -> np.ndarray:
 def policy_NN():
 	# inits the policy Neural Network
 	policy = keras.models.Sequential()
-	policy.add(layers.Conv2D(1, (2, 2), padding='valid', activation='relu', input_shape=(14, 8, 8)))
+	policy.add(layers.Conv2D(14, (2, 2), padding='valid', activation='relu', input_shape=(14, 8, 8)))
 	policy.add(layers.MaxPool2D((2, 2)))
-	policy.add(layers.Conv2D(1, (2, 2), padding='valid', activation='relu', input_shape=(14, 8, 8)))
+	policy.add(layers.Conv2D(14, (2, 2), padding='valid', activation='relu', input_shape=(14, 8, 8)))
 	policy.add(layers.Flatten())
 	policy.add(layers.Dense(564, activation='relu'))
 	policy.add(layers.Dense(218, activation='softmax'))
@@ -77,7 +77,7 @@ def policy_NN():
 def value_NN():
 	# inits the value Neural Network
 	value = keras.models.Sequential()
-	value.add(layers.Conv2D(1, (2, 2), padding='valid', activation='relu', input_shape=(14, 8, 8)))
+	value.add(layers.Conv2D(14, (2, 2), padding='valid', activation='relu', input_shape=(14, 8, 8)))
 	value.add(layers.MaxPool2D((2, 2)))
 	value.add(layers.Flatten())
 	value.add(layers.Dense(1, activation='relu'))
