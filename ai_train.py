@@ -4,6 +4,7 @@ import AI.ai as ai
 import AI.ai_MCTS as mcts
 
 
+
 policy_network = ai.policy_NN()
 value_network = ai.value_NN()
 
@@ -49,6 +50,7 @@ def train_ai(results: list[np.ndarray, list[float], float, float], value_net):
 	# init new network
 	new_policy_net = ai.policy_NN()
 
+	number_of_moves = len(results)
 	# split appart the results list
 	results_bitboards = []
 	results_policies = []
@@ -60,9 +62,23 @@ def train_ai(results: list[np.ndarray, list[float], float, float], value_net):
 		results_values.append(move[2])
 		results_outcomes.append(move[3])
 
+	# change everything to np arrays
+	np_input_bitboards = np.empty((number_of_moves, 14, 8, 8))
+	np_label_policies = np.empty((number_of_moves, 218))
+	np_label_outcomes = np.array(results_outcomes)
+	np_input_values = np.array(results_values)
+	for i in range(number_of_moves):
+		np_input_bitboards[i, :, :, :] = results_bitboards[i]
+		np_label_policies[i, :] = results_policies[i]
+
 	# train the networks
-	new_policy_net.fit(results_bitboards, results_policies)
-	value_net.fit(results_bitboards, results_outcomes)
+	new_policy_net.fit(np_input_bitboards, np_label_policies)
+	value_net.fit(np_input_bitboards, np_label_outcomes)
+
+	new_policy_save_path = "neural_networks/policy_new.keras"
+	value_save_path = "neural_networks/value.keras"
+	new_policy_net.save(new_policy_save_path)
+	value_net.save(value_save_path)
 
 
 

@@ -33,8 +33,8 @@ class Game_Node(object):
 		self.value_evaluation = value_network.predict(self.bitboard)[0, 0]
 
 		number_possible_moves = len(game.legal_moves)
-		policy_vector = list(policy_network.predict(self.bitboard)[0, :])[:number_possible_moves]
-		self.policy_vector = list(policy_vector / sum(policy_vector))
+		self.policy_vector = list(policy_network.predict(self.bitboard)[0, :])
+		self.policy_vector_legal_moves = list(self.policy_vector[:number_possible_moves] / sum(self.policy_vector[:number_possible_moves]))
 
 		self.number_of_visits = 0
 		self.child_nodes = []
@@ -111,7 +111,7 @@ def MCTS(game: object=None, starting_node: object=None, iterations: int=2):
 
 		# outputs a new game state
 		parent_game_node = root
-		selected_move = root.select_child(root.policy_vector)
+		selected_move = root.select_child(root.policy_vector_legal_moves)
 		selected_game_state = copy.deepcopy(game)
 		selected_game_state.play_machine_move(selected_move)
 
@@ -130,7 +130,7 @@ def MCTS(game: object=None, starting_node: object=None, iterations: int=2):
 
 			# if it has been visited then find the next move
 			if board_visited:
-				selected_move = selected_game_node.select_child(selected_game_node.policy_vector)
+				selected_move = selected_game_node.select_child(selected_game_node.policy_vector_legal_moves)
 				parent_game_node = selected_game_node
 				selected_game_state = copy.deepcopy(selected_game_node.game)
 				selected_game_state.play_machine_move(selected_move)
