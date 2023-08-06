@@ -31,12 +31,12 @@ class Game_Node(object):
 
 		# get the evaluation
 		self.bitboard = ai.to_bits(game)
+		print("\nvalue network")
 		self.value_evaluation = VALUE_NETWORK.predict(self.bitboard)[0, 0]
 
-		# get the policy vector
-		number_possible_moves = len(game.legal_moves)
-		self.policy_vector = list(POLICY_NETWORK.predict(self.bitboard)[0, :])
-		self.policy_vector_legal_moves = list(self.policy_vector[:number_possible_moves] / sum(self.policy_vector[:number_possible_moves]))
+		# init the policy vector
+		self.policy_vector = None
+		self.policy_vector_legal_moves = None
 
 		self.number_of_visits = 0
 		self.child_nodes = []
@@ -45,6 +45,48 @@ class Game_Node(object):
 
 	def __repr__(self):
 		return f'{self.move}'
+
+	def get_policy_vector(self):
+		"""
+		needs to return the policy vector that includes
+		1. ucb1 score of each of its child nodes
+		2. the output from the policy NN
+		3. the value evaluation from each of its child nodes
+		:return:
+		"""
+		self.init_all_children()
+
+		evaluations, ucb1_scores = self.find_child_node_information()
+
+		print("\npolicy network")
+		policy_network_output = list(POLICY_NETWORK.predict(self.bitboard)[0, :])
+
+		number_possible_moves = len(self.game.legal_moves)
+		for i in range(number_possible_moves):
+			policy_network_output[i] += evaluations[i] + ucb1_scores[i]
+
+		for i in range(number_possible_moves, 218):
+			policy_network_output[i] = 0
+
+		self.policy_vector_legal_moves, self.policy_vector = \
+			policy_network_output[:number_possible_moves], policy_network_output
+
+	def find_child_node_information(self):
+		evaluations = []
+		ucb1_scores = []
+		for node in self.child_nodes:
+			evaluations.append(node.value_evaluation)
+			ucb1_scores.append(node.get_ucb1_score())
+
+		return evaluations, ucb1_scores
+
+	def init_all_children(self):
+		for move in self.game.legal_moves:
+			new_game = copy.deepcopy(self.game)
+			new_game.play_machine_move(move)
+			new_node = Game_Node(new_game, move, parent_node=self)
+			self.child_nodes.append(new_node)
+			self.visited_boards.append(new_game.board)
 
 	def random_game_simulation(self) -> bool:
 		"""
@@ -65,9 +107,12 @@ class Game_Node(object):
 		:param exploration_constant: the constant in the equation
 		:return ucb1_score: the score from the mcts
 		"""
-		return self.wins / self.number_of_visits + exploration_constant * math.sqrt(math.log(self.parent_node.number_of_visits) / self.number_of_visits)
+		try:
+			return self.wins / self.number_of_visits + exploration_constant * math.sqrt(math.log(self.parent_node.number_of_visits) / self.number_of_visits)
+		except ZeroDivisionError:
+			return 0
 
-	def select_child(self, move_probabilities: list[float]) -> list:
+	def select_child(self, move_probabilities: list[float]) -> object:
 		"""
 		takes the move probabilities and returns the move with the highest one
 		:param move_probabilities: the output from the policy vector
@@ -75,7 +120,7 @@ class Game_Node(object):
 		"""
 		max_value = max(move_probabilities)
 		move_index = move_probabilities.index(max_value)
-		return self.game.legal_moves[move_index]
+		return self.child_nodes[move_index]
 
 
 def back_propagate(node: object, result: float, leaf_move_turn: str):
@@ -108,6 +153,7 @@ def MCTS(game: object=None, starting_node: object=None, iterations: int=2) -> ob
 	# check if the tree is already existing
 	if starting_node is None:
 		root = Game_Node(game)
+		root.get_policy_vector()
 	else:
 		root = starting_node
 		game = starting_node.game
@@ -145,9 +191,28 @@ def MCTS(game: object=None, starting_node: object=None, iterations: int=2) -> ob
 		root.child_nodes.append(leaf)
 		self_win = leaf.value_evaluation
 		back_propagate(leaf, self_win, leaf.game.move_turn)
-
 	return root
 
+
+def mcts_improved(game: object=None, starting_node: object=None, iterations: int=2) -> object:
+	# check if the tree is already existing
+	if starting_node is None:
+		root = Game_Node(game)
+		root.get_policy_vector()
+	else:
+		root = starting_node
+
+	for _ in range(iterations):
+		selected_node = root.select_child(root.policy_vector_legal_moves)
+
+		while selected_node.number_of_visits > 0:
+			selected_node = selected_node.select_child(selected_node.policy_vector_legal_moves)
+
+		selected_node.get_policy_vector()
+		self_win = selected_node.value_evaluation
+		back_propagate(selected_node, self_win, selected_node.game.move_turn)
+
+	return root
 
 
 
