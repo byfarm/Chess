@@ -1,6 +1,6 @@
 import copy
 import numpy as np
-#from ai_train import policy_network, value_network
+from ai_train import policy_network, value_network
 import AI.ai as ai
 import random
 import math
@@ -9,9 +9,6 @@ import math
 class Game_Node(object):
 	"""
 	the game node object for each game state
-	:param number_of_visits: the number of visits the mcts has made to the node
-	:param child_nodes: the child nodes of the game node
-	:param wins: the number of wins from this position
 	"""
 
 
@@ -23,15 +20,19 @@ class Game_Node(object):
 		bitboard: the 14 layer bitboard of the game state
 		value_evaluation: the value of the position from the value NN
 		policy_vector: the move probabilities from the policy NN
-
+		number_of_visits: the number of visits the mcts has made to the node
+		child_nodes: the child nodes of the game node
+		wins: the number of wins from this position
 		"""
 		self.move = move
 		self.game = game
 		self.parent_node = parent_node if parent_node else False
 
+		# get the evaluation
 		self.bitboard = ai.to_bits(game)
 		self.value_evaluation = value_network.predict(self.bitboard)[0, 0]
 
+		# get the policy vector
 		number_possible_moves = len(game.legal_moves)
 		self.policy_vector = list(policy_network.predict(self.bitboard)[0, :])
 		self.policy_vector_legal_moves = list(self.policy_vector[:number_possible_moves] / sum(self.policy_vector[:number_possible_moves]))
@@ -78,7 +79,7 @@ class Game_Node(object):
 
 def back_propagate(node: object, result: bool):
 	"""
-	back propagates through network
+	back propagates through network and updates if white won or not
 	:param node: the leaf node object
 	:param result: the white_wins result
 	:return none
@@ -94,22 +95,23 @@ def back_propagate(node: object, result: bool):
 		node = node.parent_node
 
 
-def MCTS(game: object=None, starting_node: object=None, iterations: int=2):
+def MCTS(game: object=None, starting_node: object=None, iterations: int=2) -> list:
 	"""
 	the monte carlo tree search from a game position
-	:param trainer: whether
+	:param starting_node: if the tree has already been init, then use this to keep the existing nodes
 	:param game: the game state, will be the starting board position that inits the tree
 	:param iterations: the number of times you want to search from the root node
 	:return best_move: the best move in the position based on the MCTS tree search
 	"""
+	# check if the tree is already existing
 	if starting_node is None:
 		root = Game_Node(game)
 	else:
 		root = starting_node
 		game = starting_node.game
-	for _ in range(iterations):
 
-		# outputs a new game state
+	for _ in range(iterations):
+		# set variables
 		parent_game_node = root
 		selected_move = root.select_child(root.policy_vector_legal_moves)
 		selected_game_state = copy.deepcopy(game)

@@ -3,20 +3,24 @@ from rules_and_func.game import MachineBoard
 import AI.ai as ai
 import AI.ai_MCTS as mcts
 
-
 policy_network = ai.policy_NN()
 value_network = ai.value_NN()
 
 
-def self_train_game() -> list[np.ndarray, list[float], float, None]:
+def self_train_game() -> (list[np.ndarray, list[float], float, None], bool):
 	"""
 	has the ai play against itself
-	:return:
+	:return examples: [bitboard, policy vector, evaluation, none] of move/board
+	:return white_win: whether white won the game
 	"""
 	# init games
 	game = MachineBoard()
+
+	# init the MCTS and get the tree
 	examples = []
 	root_tree = mcts.MCTS(game)
+
+	# find the best move then play it and and important info to exapmles
 	while not root_tree.game.stalemate:
 		best_node = max(root_tree.child_nodes, key=lambda child: child.get_ucb1_score())
 		examples.append([root_tree.bitboard, root_tree.policy_vector, best_node.value_evaluation, None])
@@ -26,7 +30,14 @@ def self_train_game() -> list[np.ndarray, list[float], float, None]:
 	return examples, root_tree.game.white_win
 
 
-def assign_winner(examples, white_win):
+def assign_winner(examples: list[np.ndarray, list[float], float, None], white_win: bool) -> list[np.ndarray, list[float], float, None]:
+	"""
+	assigns the winner based on if white won or not
+	:param examples: the info from each move in the game
+	:param white_win: whether white won the game or not. None is draw
+	:return examples: the examples updated with the win value
+	"""
+	# find the win value
 	if white_win:
 		white_addition = 1.0
 		black_addition = 0.0
@@ -37,6 +48,7 @@ def assign_winner(examples, white_win):
 		white_addition = 0.5
 		black_addition = white_addition
 
+	# add the win value to the end of the example
 	for move_index in range(len(examples)):
 		if move_index % 2 == 1:
 			examples[move_index][-1] = white_addition
@@ -46,6 +58,13 @@ def assign_winner(examples, white_win):
 
 
 def train_ai(results: list[np.ndarray, list[float], float, float], value_net, policy_net):
+	"""
+	trains then saves the NNs
+	:param results: the results from the game
+	:param value_net: the value NN
+	:param policy_net: the policy NN
+	:return:
+	"""
 	# init new network
 	new_policy_net = ai.policy_NN()
 
@@ -74,6 +93,7 @@ def train_ai(results: list[np.ndarray, list[float], float, float], value_net, po
 	new_policy_net.fit(np_input_bitboards, np_label_policies)
 	value_net.fit(np_input_bitboards, np_label_outcomes)
 
+	# save the networks
 	new_policy_save_path = "neural_networks/policy_new.keras"
 	value_save_path = "neural_networks/value.keras"
 	policy_save_path = "neural_networks/policy.keras"
@@ -83,6 +103,7 @@ def train_ai(results: list[np.ndarray, list[float], float, float], value_net, po
 
 
 if __name__ == "__main__":
+
 	examples, white_win = self_train_game()
 	examples_with_result = assign_winner(examples, white_win)
 	train_ai(examples_with_result, value_network, policy_network)

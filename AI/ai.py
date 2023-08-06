@@ -2,10 +2,8 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-import chess
 
-
-def to_bits(board: object):
+def to_bits(board: object) -> np.ndarray:
 	"""
 	creates a bitboard of all moves
 	:param board: the gamestate
@@ -61,6 +59,7 @@ def to_bits(board: object):
 
 
 def policy_NN():
+	# inits the policy Neural Network
 	policy = keras.models.Sequential()
 	policy.add(layers.Conv2D(1, (2, 2), padding='valid', activation='relu', input_shape=(14, 8, 8)))
 	policy.add(layers.MaxPool2D((2, 2)))
@@ -71,10 +70,12 @@ def policy_NN():
 	loss = keras.losses.CategoricalCrossentropy()
 	optim = keras.optimizers.Adam(learning_rate=0.01)
 	policy.compile(optimizer=optim, loss=loss)
+	policy.summary()
 	return policy
 
 
 def value_NN():
+	# inits the value Neural Network
 	value = keras.models.Sequential()
 	value.add(layers.Conv2D(1, (2, 2), padding='valid', activation='relu', input_shape=(14, 8, 8)))
 	value.add(layers.MaxPool2D((2, 2)))
@@ -83,5 +84,6 @@ def value_NN():
 	loss = keras.losses.MeanSquaredError()
 	optim = keras.optimizers.Adam(learning_rate=0.01)
 	value.compile(optimizer=optim, loss=loss)
+	value.summary()
 	return value
 
