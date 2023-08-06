@@ -4,7 +4,7 @@ from ai_train import policy_network, value_network
 import AI.ai as ai
 import random
 import math
-# TODO: write better code
+
 
 class Game_Node(object):
 	"""
