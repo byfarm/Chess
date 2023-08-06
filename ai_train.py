@@ -4,7 +4,6 @@ import AI.ai as ai
 import AI.ai_MCTS as mcts
 
 
-
 policy_network = ai.policy_NN()
 value_network = ai.value_NN()
 
@@ -46,7 +45,7 @@ def assign_winner(examples, white_win):
 	return examples
 
 
-def train_ai(results: list[np.ndarray, list[float], float, float], value_net):
+def train_ai(results: list[np.ndarray, list[float], float, float], value_net, policy_net):
 	# init new network
 	new_policy_net = ai.policy_NN()
 
@@ -77,16 +76,16 @@ def train_ai(results: list[np.ndarray, list[float], float, float], value_net):
 
 	new_policy_save_path = "neural_networks/policy_new.keras"
 	value_save_path = "neural_networks/value.keras"
+	policy_save_path = "neural_networks/policy.keras"
 	new_policy_net.save(new_policy_save_path)
 	value_net.save(value_save_path)
-
-
-
+	policy_net.save(policy_save_path)
 
 
 if __name__ == "__main__":
 	examples, white_win = self_train_game()
 	examples_with_result = assign_winner(examples, white_win)
+	train_ai(examples_with_result, value_network, policy_network)
 
 
 
