@@ -1,19 +1,19 @@
-import keras.models
 import numpy as np
 from rules_and_func.game import MachineBoard
 import AI.ai as ai
 import AI.ai_MCTS as mcts
 import time
+from tensorflow import keras
 
 # load the previous networks
 NEW_POLICY_SAVE_PATH = "AI/neural_networks/policy_new.keras"
 VALUE_SAVE_PATH = "AI/neural_networks/value.keras"
 POLICY_SAVE_PATH = "AI/neural_networks/policy.keras"
 try:
-	#POLICY_NETWORK = keras.models.load_model(NEW_POLICY_SAVE_PATH)
-	#VALUE_NETWORK = keras.models.load_model(VALUE_SAVE_PATH)
-	POLICY_NETWORK = ai.policy_NN()
-	VALUE_NETWORK = ai.value_NN()
+	POLICY_NETWORK = keras.models.load_model(NEW_POLICY_SAVE_PATH)
+	VALUE_NETWORK = keras.models.load_model(VALUE_SAVE_PATH)
+	#POLICY_NETWORK = ai.policy_NN()
+	#VALUE_NETWORK = ai.value_NN()
 except OSError:
 	POLICY_NETWORK = ai.policy_NN()
 	VALUE_NETWORK = ai.value_NN()
@@ -42,7 +42,7 @@ def self_train_game() -> (list[np.ndarray, list[float], None], bool):
 			break
 		if not root_tree.game.stalemate:
 			best_node = max(root_tree.child_nodes, key=lambda child: child.number_of_visits)
-			#best_node = root_tree.select_child(root_tree.policy_vector_legal_moves)
+			# best_node = root_tree.select_child(root_tree.policy_vector_legal_moves)
 			root_tree = mcts.MCTS(starting_node=best_node)
 			print("\nmade move")
 
@@ -121,7 +121,6 @@ def train_ai(results: list[np.ndarray, list[float], float], value_net, policy_ne
 
 if __name__ == "__main__":
 	start = time.time()
-
 	# run through one game of simulation
 	examples, white_win = self_train_game()
 	examples_with_result = assign_winner(examples, white_win)

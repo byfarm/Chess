@@ -3,6 +3,8 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
+print(tf.config.list_physical_devices('GPU'))
+
 
 #TODO: make tf able to work on gpu to reduce training time
 
@@ -81,6 +83,7 @@ def to_bits(board: object) -> np.ndarray:
 
 
 def policy_NN():
+	tf.config.list_physical_devices('GPU')
 	# inits the policy Neural Network
 	policy = keras.models.Sequential(name="policy")
 	policy.add(layers.Conv2D(14, (2, 2), padding='valid', activation='relu', input_shape=(16, 8, 8)))
@@ -99,6 +102,8 @@ def policy_NN():
 
 
 def value_NN():
+	# TODO: prints the following error sometimes, I think it is a problem with the dense layer
+	#	Matrix size-incompatible: In[0]: [1,64], In[1]: [96,1] [[{{node value/dense_2/BiasAdd}}]] [Op:__inference_predict_function_31238]
 	# inits the value Neural Network
 	value = keras.models.Sequential(name="value")
 	value.add(layers.Conv2D(16, (2, 2), padding='valid', activation='relu', input_shape=(16, 8, 8)))
