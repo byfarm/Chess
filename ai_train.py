@@ -10,8 +10,10 @@ NEW_POLICY_SAVE_PATH = "AI/neural_networks/policy_new.keras"
 VALUE_SAVE_PATH = "AI/neural_networks/value.keras"
 POLICY_SAVE_PATH = "AI/neural_networks/policy.keras"
 try:
-	POLICY_NETWORK = keras.models.load_model(NEW_POLICY_SAVE_PATH)
-	VALUE_NETWORK = keras.models.load_model(VALUE_SAVE_PATH)
+	#POLICY_NETWORK = keras.models.load_model(NEW_POLICY_SAVE_PATH)
+	#VALUE_NETWORK = keras.models.load_model(VALUE_SAVE_PATH)
+	POLICY_NETWORK = ai.policy_NN()
+	VALUE_NETWORK = ai.value_NN()
 except OSError:
 	POLICY_NETWORK = ai.policy_NN()
 	VALUE_NETWORK = ai.value_NN()
@@ -28,7 +30,7 @@ def self_train_game() -> (list[np.ndarray, list[float], None], bool):
 
 	# init the MCTS and get the tree
 	examples = []
-	root_tree = mcts.mcts_improved(game)
+	root_tree = mcts.MCTS(game)
 
 	# find the best move then play it and important info to exapmles
 	while not root_tree.game.stalemate:
@@ -39,8 +41,9 @@ def self_train_game() -> (list[np.ndarray, list[float], None], bool):
 		if len(root_tree.game.legal_moves) == 0:
 			break
 		if not root_tree.game.stalemate:
-			best_node = root_tree.select_child(root_tree.policy_vector_legal_moves)
-			root_tree = mcts.mcts_improved(starting_node=best_node)
+			best_node = max(root_tree.child_nodes, key=lambda child: child.number_of_visits)
+			#best_node = root_tree.select_child(root_tree.policy_vector_legal_moves)
+			root_tree = mcts.MCTS(starting_node=best_node)
 			print("\nmade move")
 
 	print("game over")
@@ -97,7 +100,7 @@ def train_ai(results: list[np.ndarray, list[float], float], value_net, policy_ne
 		results_outcomes.append(move[2])
 
 	# change everything to np arrays
-	np_input_bitboards = np.empty((number_of_moves, 14, 8, 8))
+	np_input_bitboards = np.empty((number_of_moves, 16, 8, 8))
 	np_label_policies = np.empty((number_of_moves, 218))
 	np_label_outcomes = np.array(results_outcomes)
 	for i in range(number_of_moves):
@@ -113,12 +116,13 @@ def train_ai(results: list[np.ndarray, list[float], float], value_net, policy_ne
 	value_net.save(VALUE_SAVE_PATH)
 	policy_net.save(POLICY_SAVE_PATH)
 
-	print(np_label_outcomes)
+	print(np_label_outcomes[0])
 
 
 if __name__ == "__main__":
 	start = time.time()
 
+	# run through one game of simulation
 	examples, white_win = self_train_game()
 	examples_with_result = assign_winner(examples, white_win)
 	train_ai(examples_with_result, VALUE_NETWORK, POLICY_NETWORK)

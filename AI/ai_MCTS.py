@@ -144,11 +144,11 @@ def back_propagate(node: object, result: float, leaf_move_turn: str):
 
 def MCTS(game: object=None, starting_node: object=None, iterations: int=2) -> object:
 	"""
-	the monte carlo tree search from a game position
-	:param starting_node: if the tree has already been init, then use this to keep the existing nodes
-	:param game: the game state, will be the starting board position that inits the tree
-	:param iterations: the number of times you want to search from the root node
-	:return best_move: the best move in the position based on the MCTS tree search
+	runs a monte carlo tree search on the current game/node
+	:param game: the origin game object
+	:param starting_node: if tree already init, the starting node
+	:param iterations: the number of times want to run a search before returning the tree object
+	:return root: the root of the search tree. will be used to find the best next move
 	"""
 	# check if the tree is already existing
 	if starting_node is None:
@@ -156,52 +156,9 @@ def MCTS(game: object=None, starting_node: object=None, iterations: int=2) -> ob
 		root.get_policy_vector()
 	else:
 		root = starting_node
-		game = starting_node.game
 
-	for _ in range(iterations):
-		# set variables
-		parent_game_node = root
-		selected_move = root.select_child(root.policy_vector_legal_moves)
-		selected_game_state = copy.deepcopy(game)
-		selected_game_state.play_machine_move(selected_move)
-
-		# find if the board has been visited or not
-		board_visited = True
-		while board_visited:
-			# reset if visited
-			board_visited = False
-
-			# check if visisted
-			for board in enumerate(root.visited_boards):
-				if np.array_equal(board[1], selected_game_state.board):
-					board_visited = True
-					selected_game_node = root.child_nodes[board[0]]
-					break
-
-			# if it has been visited then find the next move
-			if board_visited:
-				selected_move = selected_game_node.select_child(selected_game_node.policy_vector_legal_moves)
-				parent_game_node = selected_game_node
-				selected_game_state = copy.deepcopy(selected_game_node.game)
-				selected_game_state.play_machine_move(selected_move)
-
-		# creates new leaf and back propagates through
-		leaf = Game_Node(selected_game_state, move=selected_move, parent_node=parent_game_node)
-		root.visited_boards.append(selected_game_state.board)
-		root.child_nodes.append(leaf)
-		self_win = leaf.value_evaluation
-		back_propagate(leaf, self_win, leaf.game.move_turn)
-	return root
-
-
-def mcts_improved(game: object=None, starting_node: object=None, iterations: int=2) -> object:
-	# check if the tree is already existing
-	if starting_node is None:
-		root = Game_Node(game)
-		root.get_policy_vector()
-	else:
-		root = starting_node
-
+	# run through so many times by selecting a node, seeing if it is visited, if not then finding a new one and finding
+	# the outcome of it
 	for _ in range(iterations):
 		selected_node = root.select_child(root.policy_vector_legal_moves)
 

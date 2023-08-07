@@ -3,6 +3,9 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
+
+#TODO: make tf able to work on gpu to reduce training time
+
 def to_bits(board: object) -> np.ndarray:
 	"""
 	creates a bitboard of all moves
@@ -38,10 +41,29 @@ def to_bits(board: object) -> np.ndarray:
 		attacked_space = possible_moves[0][1]
 		bit_dictionary[key_turn][attacked_space] = 1
 
+	# layer for the color
+	if board.move_turn == "w":
+		move_turn_bitboard = np.zeros((8, 8), dtype=int)
+	else:
+		move_turn_bitboard = np.ones((8, 8), dtype=int)
+	bit_dictionary["mv"] = move_turn_bitboard
+
+	# layer for all legal castles
+	castling_bitboard = np.zeros((8, 8), int)
+	for white_rook in board.pieces['w']['R']:
+		if not white_rook.moved and not board.pieces["w"]["K"][0].moved:
+			castling_bitboard[white_rook.position] = 1
+
+	for black_rook in board.pieces['b']['R']:
+		if not black_rook.moved and not board.pieces["b"]["K"][0].moved:
+			castling_bitboard[black_rook.position] = 1
+	bit_dictionary["cl"] = castling_bitboard
+
 	# creates the bitboard and makes it into a 3d numpy array for all the positions and possible moves at once
 	# can reset to depth of 232
-	bitboard = np.zeros((1, 14, 8, 8), int)
 	dictionary_keys = list(bit_dictionary.keys())
+	bitboard = np.zeros((1, len(dictionary_keys), 8, 8), int)
+
 	for i in range(len(dictionary_keys)):
 		key = dictionary_keys[i]
 		bitboard[0, i, :, :] = bit_dictionary[key]
@@ -60,30 +82,35 @@ def to_bits(board: object) -> np.ndarray:
 
 def policy_NN():
 	# inits the policy Neural Network
-	policy = keras.models.Sequential()
-	policy.add(layers.Conv2D(14, (2, 2), padding='valid', activation='relu', input_shape=(14, 8, 8)))
+	policy = keras.models.Sequential(name="policy")
+	policy.add(layers.Conv2D(14, (2, 2), padding='valid', activation='relu', input_shape=(16, 8, 8)))
 	policy.add(layers.MaxPool2D((2, 2)))
-	policy.add(layers.Conv2D(14, (2, 2), padding='valid', activation='relu', input_shape=(14, 8, 8)))
+	policy.add(layers.Conv2D(28, (2, 2), activation='relu'))
+	policy.add(layers.MaxPool2D((2, 2)))
 	policy.add(layers.Flatten())
-	policy.add(layers.Dense(564, activation='relu'))
+	policy.add(layers.Dense(536, activation='relu'))
 	policy.add(layers.Dense(218, activation='softmax'))
 	loss = keras.losses.CategoricalCrossentropy()
-	optim = keras.optimizers.Adam(learning_rate=0.1)
-	policy.compile(optimizer=optim, loss=loss)
+	optim = keras.optimizers.Adam(learning_rate=0.2)
+	metrics = ["accuracy"]
+	policy.compile(optimizer=optim, loss=loss, metrics=metrics)
 	policy.summary()
 	return policy
 
 
 def value_NN():
 	# inits the value Neural Network
-	value = keras.models.Sequential()
-	value.add(layers.Conv2D(14, (2, 2), padding='valid', activation='relu', input_shape=(14, 8, 8)))
+	value = keras.models.Sequential(name="value")
+	value.add(layers.Conv2D(16, (2, 2), padding='valid', activation='relu', input_shape=(16, 8, 8)))
+	value.add(layers.MaxPool2D((2, 2)))
+	value.add(layers.Conv2D(32, (2, 2), activation='relu'))
 	value.add(layers.MaxPool2D((2, 2)))
 	value.add(layers.Flatten())
 	value.add(layers.Dense(1, activation='relu'))
 	loss = keras.losses.MeanSquaredError()
-	optim = keras.optimizers.Adam(learning_rate=0.1)
-	value.compile(optimizer=optim, loss=loss)
+	optim = keras.optimizers.Adam(learning_rate=0.2)
+	metrics = ["accuracy"]
+	value.compile(optimizer=optim, loss=loss, metrics=metrics)
 	value.summary()
 	return value
 
