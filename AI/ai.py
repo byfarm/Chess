@@ -14,42 +14,58 @@ def to_bits(board: object) -> np.ndarray:
 	:param board: the gamestate
 	:return bit_board: a 3d np array of bit boards
 	"""
+	# ======================= pieces ==========================
 	# create a bit dictionay that will house each bitboard corresponding to the piece
 	bit_dictionary = {}
-	for rank in board.board:
-		for space in rank:
-			if space != "EE":
-				bit_dictionary[space] = np.zeros((8, 8), int)
-	# these two bitboards are for possible moves for the machine
-	bit_dictionary["wc"] = np.zeros((8, 8), int)
-	bit_dictionary["bc"] = np.zeros((8, 8), int)
 
-	# adds all positions of the pieces into the bitboard
-	for black_and_white_pieces in board.pieces.values():
-		for piece_type in black_and_white_pieces.values():
-			for piece in piece_type:
+	for piece_color in board.pieces.keys():
+		for piece_type in board.pieces[piece_color].keys():
+			bit_dictionary[piece_color + piece_type] = np.zeros((8, 8), int)
+			for piece in board.pieces[piece_color][piece_type]:
 				bit_dictionary[piece.name][piece.position] = 1
 
+	# ====================== all moves and captures =========================
+	opponent_moves_and_captures = board.find_machine_moves(color=board.oppo_turn)
+	opponent_moves = opponent_moves_and_captures[0]
+	opponent_captures = opponent_moves_and_captures[-1]
+
+	bit_dictionary["w_moves"] = np.zeros((8, 8), int)
+	bit_dictionary["b_moves"] = np.zeros((8, 8), int)
 	# this adds values to the bitboards for the current move
-	key_turn = board.move_turn + "c"
+	key_turn = board.move_turn + "_moves"
 	for possible_moves in board.legal_moves:
 		attacked_space = possible_moves[0][1]
 		bit_dictionary[key_turn][attacked_space] = 1
 
-	# adds values to the bitboards for opponent's move
-	opponent_moves = board.find_machine_moves()[0]
-	key_turn = board.oppo_turn + "c"
+	# this adds values to the bitboards for the current move
+	key_turn = board.oppo_turn + "_moves"
 	for possible_moves in opponent_moves:
 		attacked_space = possible_moves[0][1]
 		bit_dictionary[key_turn][attacked_space] = 1
 
+	bit_dictionary["b_capture"] = np.zeros((8, 8), int)
+	bit_dictionary["w_capture"] = np.zeros((8, 8), int)
+	# adds values to the bitboards for opponent's captures
+	key_turn = board.oppo_turn + "_capture"
+	for possible_moves in opponent_captures:
+		attacked_space = possible_moves[1]
+		bit_dictionary[key_turn][attacked_space] = 1
+
+	# adds values to the bitboards for opponent's captures
+	key_turn = board.move_turn + "_capture"
+	for possible_moves in board.capturing_location:
+		attacked_space = possible_moves[1]
+		bit_dictionary[key_turn][attacked_space] = 1
+
+	# ================== move turn =========================
 	# layer for the color
 	if board.move_turn == "w":
 		move_turn_bitboard = np.zeros((8, 8), dtype=int)
 	else:
 		move_turn_bitboard = np.ones((8, 8), dtype=int)
-	bit_dictionary["mv"] = move_turn_bitboard
+	bit_dictionary["move_turn"] = move_turn_bitboard
 
+	# ================ castling =======================
 	# layer for all legal castles
 	castling_bitboard = np.zeros((8, 8), int)
 	for white_rook in board.pieces['w']['R']:
@@ -59,13 +75,13 @@ def to_bits(board: object) -> np.ndarray:
 	for black_rook in board.pieces['b']['R']:
 		if not black_rook.moved and not board.pieces["b"]["K"][0].moved:
 			castling_bitboard[black_rook.position] = 1
-	bit_dictionary["cl"] = castling_bitboard
+	bit_dictionary["castling"] = castling_bitboard
 
+	# =================== combination ========================
 	# creates the bitboard and makes it into a 3d numpy array for all the positions and possible moves at once
 	# can reset to depth of 232
 	dictionary_keys = list(bit_dictionary.keys())
 	bitboard = np.zeros((1, len(dictionary_keys), 8, 8), int)
-
 	for i in range(len(dictionary_keys)):
 		key = dictionary_keys[i]
 		bitboard[0, i, :, :] = bit_dictionary[key]
@@ -86,7 +102,7 @@ def policy_NN():
 	tf.config.list_physical_devices('GPU')
 	# inits the policy Neural Network
 	policy = keras.models.Sequential(name="policy")
-	policy.add(layers.Conv2D(14, (2, 2), padding='valid', activation='relu', input_shape=(16, 8, 8)))
+	policy.add(layers.Conv2D(18, (2, 2), padding='valid', activation='relu', input_shape=(18, 8, 8)))
 	policy.add(layers.MaxPool2D((2, 2)))
 	policy.add(layers.Conv2D(28, (2, 2), activation='relu'))
 	policy.add(layers.MaxPool2D((2, 2)))
@@ -106,7 +122,7 @@ def value_NN():
 	#	Matrix size-incompatible: In[0]: [1,64], In[1]: [96,1] [[{{node value/dense_2/BiasAdd}}]] [Op:__inference_predict_function_31238]
 	# inits the value Neural Network
 	value = keras.models.Sequential(name="value")
-	value.add(layers.Conv2D(16, (2, 2), padding='valid', activation='relu', input_shape=(16, 8, 8)))
+	value.add(layers.Conv2D(18, (2, 2), padding='valid', activation='relu', input_shape=(18, 8, 8)))
 	value.add(layers.MaxPool2D((2, 2)))
 	value.add(layers.Conv2D(32, (2, 2), activation='relu'))
 	value.add(layers.MaxPool2D((2, 2)))

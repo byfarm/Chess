@@ -35,15 +35,15 @@ class MachineBoard:
 		self.past_boards = []
 
 		# initialize tree values
-		self.name = 'Head'
+		self.name = "Head"
 		self.value = None
 		self.initialize_pieces()
 
 		# find moves in position
-		self.legal_moves, self.c_moves, self.captures = self.find_machine_moves()
+		self.legal_moves, self.castling_moves, self.captures, self.capturing_location = self.find_machine_moves()
 
 	def __repr__(self):
-		return f'{self.name}'
+		return f'Chess Game'
 
 	def move(self, old_position: tuple, input_move: tuple):
 		"""
@@ -166,8 +166,9 @@ class MachineBoard:
 			[((4,5), (3,4), e_passant, [bool, rook, checked_spaces]), ... ]
 		"""
 		legal_moves = []
-		c_moves = []
-		cap = []
+		castling_moves = []
+		capturing_squares = []
+		capturing_location = []
 		# find pieces in same color
 		if color is None:
 			color = self.move_turn
@@ -194,13 +195,14 @@ class MachineBoard:
 								if castle is not None:
 									pass
 								if castle is None or not castle[0]:
-									c_moves.append(tot_mv[0])
+									castling_moves.append(tot_mv[0])
 								if capture is not None:
-									cap.append(capture)
+									capturing_squares.append(capture)
+									capturing_location.append(tot_mv[0])
 
 
-		# outputs legal moves, c_moves: check moves, and capturing squares
-		return legal_moves, c_moves, cap
+		# outputs legal moves, castling_moves: check moves, and capturing squares
+		return legal_moves, castling_moves, capturing_squares, capturing_location
 
 	def play_machine_move(self, move: list[tuple, bool, list[bool, object, list[tuple]]]):
 		"""
@@ -253,7 +255,7 @@ class MachineBoard:
 		self.next_turn()
 
 		# find moves in position
-		self.legal_moves, self.c_moves, self.captures = self.find_machine_moves()
+		self.legal_moves, self.castling_moves, self.captures, self.capturing_location = self.find_machine_moves()
 		#self.print_board(self.board)
 
 	def change_move_value(self, piece: str, new_position: tuple):

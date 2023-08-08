@@ -11,7 +11,6 @@ class Game_Node(object):
 	the game node object for each game state
 	"""
 	def __init__(self, game: object, move: list=None, parent_node: object=None):
-		# TODO: the policy vector should include the ucb1 score, the output from the policy NN, and the value evaluation
 		# this means do not make the policy vector unless it is a chosed leaf node because then must init all children.
 		# make the policy call outside the init method
 		"""
@@ -31,8 +30,7 @@ class Game_Node(object):
 
 		# get the evaluation
 		self.bitboard = ai.to_bits(game)
-		print("\nvalue network")
-		self.value_evaluation = VALUE_NETWORK.predict(self.bitboard)[0, 0]
+		self.value_evaluation = VALUE_NETWORK(self.bitboard).numpy()[0, 0]
 
 		# init the policy vector
 		self.policy_vector = None
@@ -58,18 +56,13 @@ class Game_Node(object):
 
 		evaluations, ucb1_scores = self.find_child_node_information()
 
-		print("\npolicy network")
-		policy_network_output = list(POLICY_NETWORK.predict(self.bitboard)[0, :])
+		print("policy network")
+		policy_network_output = POLICY_NETWORK(self.bitboard).numpy()[0, :]
 
 		number_possible_moves = len(self.game.legal_moves)
-		for i in range(number_possible_moves):
-			policy_network_output[i] += evaluations[i] + ucb1_scores[i]
 
-		for i in range(number_possible_moves, 218):
-			policy_network_output[i] = 0
-
-		self.policy_vector_legal_moves, self.policy_vector = \
-			policy_network_output[:number_possible_moves], policy_network_output
+		self.policy_vector_legal_moves = evaluations + ucb1_scores + policy_network_output[:number_possible_moves]
+		self.policy_vector = np.hstack((self.policy_vector_legal_moves, np.zeros((218 - number_possible_moves))), dtype=np.float64)
 
 	def find_child_node_information(self):
 		evaluations = []
@@ -78,7 +71,7 @@ class Game_Node(object):
 			evaluations.append(node.value_evaluation)
 			ucb1_scores.append(node.get_ucb1_score())
 
-		return evaluations, ucb1_scores
+		return np.array(evaluations), np.array(ucb1_scores)
 
 	def init_all_children(self):
 		for move in self.game.legal_moves:
@@ -118,9 +111,7 @@ class Game_Node(object):
 		:param move_probabilities: the output from the policy vector
 		:return best_move: the best move based on the policy vector in the position
 		"""
-		max_value = max(move_probabilities)
-		move_index = move_probabilities.index(max_value)
-		return self.child_nodes[move_index]
+		return self.child_nodes[np.argmax(move_probabilities)]
 
 
 def back_propagate(node: object, result: float, leaf_move_turn: str):
@@ -156,16 +147,24 @@ def MCTS(game: object=None, starting_node: object=None, iterations: int=2) -> ob
 		root.get_policy_vector()
 	else:
 		root = starting_node
+		root.parent_node = False
 
 	# run through so many times by selecting a node, seeing if it is visited, if not then finding a new one and finding
 	# the outcome of it
 	for _ in range(iterations):
-		selected_node = root.select_child(root.policy_vector_legal_moves)
+
+		# add a bit of randomness to search
+		alpha = np.full((len(root.game.legal_moves),), 0.3)
+		dirichlet_noise = np.random.dirichlet(alpha)
+		noise_probabilities = root.policy_vector_legal_moves + dirichlet_noise
+		selected_node = root.select_child(noise_probabilities)
 
 		while selected_node.number_of_visits > 0:
-			selected_node = selected_node.select_child(selected_node.policy_vector_legal_moves)
+			if selected_node.policy_vector_legal_moves is not None:
+				selected_node = selected_node.select_child(selected_node.policy_vector_legal_moves)
+			else:
+				selected_node.get_policy_vector()
 
-		selected_node.get_policy_vector()
 		self_win = selected_node.value_evaluation
 		back_propagate(selected_node, self_win, selected_node.game.move_turn)
 
