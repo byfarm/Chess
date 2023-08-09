@@ -1,9 +1,11 @@
 import numpy as np
 from rules_and_func.game import MachineBoard
 import AI.ai as ai
-import AI.ai_MCTS as mcts
 import time
-from tensorflow import keras
+import tensorflow as tf
+import pygame
+import AI.ai_MCTS as mcts
+from rules_and_func.display_functions import draw_pieces, WIDTH, HEIGHT, init_pieces
 
 # load the previous networks
 NEW_POLICY_SAVE_PATH = "AI/neural_networks/policy_new.keras"
@@ -89,10 +91,9 @@ def train_ai(results: list[np.ndarray, list[float], float], value_net, policy_ne
 	"""
 	# init new network
 	new_policy_net = ai.policy_NN()
+	# new_value_net = ai.value_NN()
 
-	# data prep
-	number_of_moves = len(results)
-	# split appart the results list
+	# split apart the results list
 	results_bitboards = []
 	results_policies = []
 	results_outcomes = []
@@ -101,30 +102,67 @@ def train_ai(results: list[np.ndarray, list[float], float], value_net, policy_ne
 		results_policies.append(move[1])
 		results_outcomes.append(move[2])
 
-	# change everything to np arrays
-	np_input_bitboards = np.empty((number_of_moves, results_bitboards[0].shape[0], 8, 8))
-	np_label_policies = np.empty((number_of_moves, 218))
-	np_label_outcomes = np.array(results_outcomes)
-	for i in range(number_of_moves):
-		np_input_bitboards[i, :, :, :] = results_bitboards[i]
-		np_label_policies[i, :] = results_policies[i]
+	# change outcomes to tf
+	tf_input_bitboards = tf.concat(results_bitboards, axis=0)
+	tf_label_policies = tf.stack(results_policies)
+	tf_label_outcomes = tf.constant(results_outcomes)
 
 	# train the networks
-	new_policy_net.fit(np_input_bitboards, np_label_policies)
-	value_net.fit(np_input_bitboards, np_label_outcomes)
+	new_policy_net.fit(tf_input_bitboards, tf_label_policies)
+	value_net.fit(tf_input_bitboards, tf_label_outcomes)
 
 	# save the networks
 	new_policy_net.save(NEW_POLICY_SAVE_PATH)
 	value_net.save(VALUE_SAVE_PATH)
 	policy_net.save(POLICY_SAVE_PATH)
 
-	print(np_label_outcomes[0])
+	print(tf_label_outcomes.numpy())
+
+def view_train_game() -> (list[np.ndarray, list[float], None], bool):
+	"""
+	has the ai play against itself
+	:return examples: [bitboard, policy vector, evaluation, none] of move/board
+	:return white_win: whether white won the game
+	"""
+	WIN = pygame.display.set_mode((WIDTH, HEIGHT))
+	pygame.display.set_caption('Chess')
+	init_pieces()
+	# init games
+	game = MachineBoard()
+
+	# init the MCTS and get the tree
+	examples = []
+	root_tree = mcts.MCTS(game)
+
+	# find the best move then play it and important info to exapmles
+	move = 0
+	while not root_tree.game.stalemate:
+		pygame.event.get()
+		draw_pieces(WIN, root_tree.game.pieces)
+		pygame.display.update()
+
+		examples.append([root_tree.bitboard, root_tree.policy_vector, None])
+		root_tree.game.look_for_draws()
+		root_tree.game.check_for_checkmate()
+		if len(root_tree.game.legal_moves) == 0:
+			break
+		if not root_tree.game.stalemate:
+			# best_node = max(root_tree.child_nodes, key=lambda child: child.number_of_visits)
+			best_node = root_tree.select_child(root_tree.policy_vector_legal_moves)
+			root_tree = mcts.MCTS(starting_node=best_node)
+			move += 1
+			print(f"\nmade move number: {move}")
+
+	print("game over")
+	pygame.quit()
+	return examples, root_tree.game.white_win
 
 
 if __name__ == "__main__":
+
 	start = time.time()
 	# run through one game of simulation
-	examples, white_win = self_train_game()
+	examples, white_win = view_train_game()
 	examples_with_result = assign_winner(examples, white_win)
 	train_ai(examples_with_result, VALUE_NETWORK, POLICY_NETWORK)
 

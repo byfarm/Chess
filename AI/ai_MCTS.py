@@ -4,6 +4,7 @@ from ai_train import POLICY_NETWORK, VALUE_NETWORK
 import AI.ai as ai
 import random
 import math
+import tensorflow as tf
 
 
 class Game_Node(object):
@@ -52,17 +53,19 @@ class Game_Node(object):
 		3. the value evaluation from each of its child nodes
 		:return:
 		"""
-		self.init_all_children()
+		# make sure the children have not already been init
+		if len(self.child_nodes) == 0:
+			self.init_all_children()
 
 		evaluations, ucb1_scores = self.find_child_node_information()
 
 		print("policy network")
-		policy_network_output = POLICY_NETWORK(self.bitboard).numpy()[0, :]
+		policy_network_output = POLICY_NETWORK(self.bitboard)[0, :]
 
 		number_possible_moves = len(self.game.legal_moves)
 
 		self.policy_vector_legal_moves = evaluations + ucb1_scores + policy_network_output[:number_possible_moves]
-		self.policy_vector = np.hstack((self.policy_vector_legal_moves, np.zeros((218 - number_possible_moves))), dtype=np.float64)
+		self.policy_vector = tf.concat((self.policy_vector_legal_moves, tf.zeros((218 - number_possible_moves), float)), axis=0)
 
 	def find_child_node_information(self):
 		evaluations = []
@@ -71,9 +74,10 @@ class Game_Node(object):
 			evaluations.append(node.value_evaluation)
 			ucb1_scores.append(node.get_ucb1_score())
 
-		return np.array(evaluations), np.array(ucb1_scores)
+		return tf.constant(evaluations, dtype=float), tf.constant(ucb1_scores, dtype=float)
 
 	def init_all_children(self):
+
 		for move in self.game.legal_moves:
 			new_game = copy.deepcopy(self.game)
 			new_game.play_machine_move(move)
@@ -111,7 +115,7 @@ class Game_Node(object):
 		:param move_probabilities: the output from the policy vector
 		:return best_move: the best move based on the policy vector in the position
 		"""
-		return self.child_nodes[np.argmax(move_probabilities)]
+		return self.child_nodes[tf.argmax(move_probabilities)]
 
 
 def back_propagate(node: object, result: float, leaf_move_turn: str):
@@ -144,18 +148,19 @@ def MCTS(game: object=None, starting_node: object=None, iterations: int=2) -> ob
 	# check if the tree is already existing
 	if starting_node is None:
 		root = Game_Node(game)
-		root.get_policy_vector()
+
 	else:
 		root = starting_node
 		root.parent_node = False
 
+	root.get_policy_vector()
 	# run through so many times by selecting a node, seeing if it is visited, if not then finding a new one and finding
 	# the outcome of it
 	for _ in range(iterations):
 
 		# add a bit of randomness to search
 		alpha = np.full((len(root.game.legal_moves),), 0.3)
-		dirichlet_noise = np.random.dirichlet(alpha)
+		dirichlet_noise = tf.convert_to_tensor(np.random.dirichlet(alpha), dtype=tf.float32)
 		noise_probabilities = root.policy_vector_legal_moves + dirichlet_noise
 		selected_node = root.select_child(noise_probabilities)
 
@@ -167,6 +172,7 @@ def MCTS(game: object=None, starting_node: object=None, iterations: int=2) -> ob
 
 		self_win = selected_node.value_evaluation
 		back_propagate(selected_node, self_win, selected_node.game.move_turn)
+		print(selected_node.game.move_counter - root.game.move_counter)
 
 	return root
 

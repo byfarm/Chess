@@ -1,5 +1,5 @@
 import pygame
-import rules_and_func.machine_functions as machine_functions
+#import rules_and_func.machine_functions as machine_functions
 
 
 # constants
@@ -28,17 +28,16 @@ def init_pieces():
 	# adds all the pieces for the board
 	pieces = ['wP', 'wR', 'wN', 'wB', 'wQ', 'wK', 'bQ', 'bK', 'bB', 'bN', 'bR', 'bP']
 	for piece in pieces:
-		IMAGES[piece] = pygame.transform.scale(pygame.image.load(f'images/{piece}.png'), (SQUARE_SIZE, SQUARE_SIZE))
+		IMAGES[piece] = pygame.transform.scale(pygame.image.load(f'C:/Users/bucks/OneDrive/Documents/coding/Python/chess/final_version/images/{piece}.png'), (SQUARE_SIZE, SQUARE_SIZE))
 
 
-def draw_pieces(win: pygame, board):
-	# draws all the pieces on the board
+def draw_pieces(win: pygame, piece_dictionary: dict):
 	draw_squares(win)
-	for row in range(ROWS):
-		for col in range(COLS):
-			piece = board[(row, col)]
-			if piece != 'EE':
-				win.blit(IMAGES[piece], pygame.Rect(col*SQUARE_SIZE, row*SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
+	for color in piece_dictionary.values():
+		for piece_type in color.values():
+			for piece in piece_type:
+				row, col = piece.position
+				win.blit(IMAGES[piece.name], pygame.Rect(col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
 
 
 def select_color():
