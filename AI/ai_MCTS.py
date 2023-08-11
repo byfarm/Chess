@@ -1,10 +1,10 @@
 import copy
 import numpy as np
-from ai_train import POLICY_NETWORK, VALUE_NETWORK
 import AI.ai as ai
 import random
 import math
 import tensorflow as tf
+from AI.neural_networks import POLICY_NETWORK, VALUE_NETWORK
 
 
 class Game_Node(object):
@@ -65,7 +65,7 @@ class Game_Node(object):
 		number_possible_moves = len(self.game.legal_moves)
 
 		self.policy_vector_legal_moves = evaluations + ucb1_scores + policy_network_output[:number_possible_moves]
-		self.policy_vector = tf.concat((self.policy_vector_legal_moves, tf.zeros((218 - number_possible_moves), float)), axis=0)
+		self.policy_vector = tf.concat((self.policy_vector_legal_moves, tf.zeros(218 - number_possible_moves, float)), axis=0)
 
 	def find_child_node_information(self):
 		evaluations = []
@@ -77,11 +77,10 @@ class Game_Node(object):
 		return tf.constant(evaluations, dtype=float), tf.constant(ucb1_scores, dtype=float)
 
 	def init_all_children(self):
-
 		for move in self.game.legal_moves:
 			new_game = copy.deepcopy(self.game)
 			new_game.play_machine_move(move)
-			new_node = Game_Node(new_game, move, parent_node=self)
+			new_node = Game_Node(new_game, move=move, parent_node=self)
 			self.child_nodes.append(new_node)
 			self.visited_boards.append(new_game.board)
 
@@ -107,7 +106,11 @@ class Game_Node(object):
 		try:
 			return self.wins / self.number_of_visits + exploration_constant * math.sqrt(math.log(self.parent_node.number_of_visits) / self.number_of_visits)
 		except ZeroDivisionError:
-			return 0
+			# as if it had looked but returned a loss
+			if self.parent_node.number_of_visits > 0:
+				return exploration_constant * math.sqrt(math.log(self.parent_node.number_of_visits))
+			else:
+				return 0
 
 	def select_child(self, move_probabilities: list[float]) -> object:
 		"""
@@ -137,7 +140,7 @@ def back_propagate(node: object, result: float, leaf_move_turn: str):
 		node = node.parent_node
 
 
-def MCTS(game: object=None, starting_node: object=None, iterations: int=2) -> object:
+def MCTS(game: object=None, starting_node: object=None, iterations: int=10) -> object:
 	"""
 	runs a monte carlo tree search on the current game/node
 	:param game: the origin game object
@@ -159,7 +162,8 @@ def MCTS(game: object=None, starting_node: object=None, iterations: int=2) -> ob
 	for _ in range(iterations):
 
 		# add a bit of randomness to search
-		alpha = np.full((len(root.game.legal_moves),), 0.3)
+		# TODO: I think the noise is added only to the root vector. all the rest is just based upon mcts search, no value or policy?
+		alpha = np.full(len(root.game.legal_moves), 0.3)
 		dirichlet_noise = tf.convert_to_tensor(np.random.dirichlet(alpha), dtype=tf.float32)
 		noise_probabilities = root.policy_vector_legal_moves + dirichlet_noise
 		selected_node = root.select_child(noise_probabilities)
@@ -172,7 +176,7 @@ def MCTS(game: object=None, starting_node: object=None, iterations: int=2) -> ob
 
 		self_win = selected_node.value_evaluation
 		back_propagate(selected_node, self_win, selected_node.game.move_turn)
-		print(selected_node.game.move_counter - root.game.move_counter)
+		print(selected_node.game.move_counter - root.game.move_counter, selected_node)
 
 	return root
 

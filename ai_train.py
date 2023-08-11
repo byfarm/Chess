@@ -6,11 +6,11 @@ import tensorflow as tf
 import pygame
 import AI.ai_MCTS as mcts
 from rules_and_func.display_functions import draw_pieces, WIDTH, HEIGHT, init_pieces
+import AI.neural_networks as nn
+import pandas as pd
 
-# load the previous networks
-NEW_POLICY_SAVE_PATH = "AI/neural_networks/policy_new.keras"
-VALUE_SAVE_PATH = "AI/neural_networks/value.keras"
-POLICY_SAVE_PATH = "AI/neural_networks/policy.keras"
+
+"""
 try:
 	# POLICY_NETWORK = keras.models.load_model(NEW_POLICY_SAVE_PATH)
 	# VALUE_NETWORK = keras.models.load_model(VALUE_SAVE_PATH)
@@ -19,6 +19,7 @@ try:
 except OSError:
 	POLICY_NETWORK = ai.policy_NN()
 	VALUE_NETWORK = ai.value_NN()
+"""
 
 
 def self_train_game() -> (list[np.ndarray, list[float], None], bool):
@@ -41,11 +42,9 @@ def self_train_game() -> (list[np.ndarray, list[float], None], bool):
 		examples.append([root_tree.bitboard, root_tree.policy_vector, None])
 		root_tree.game.look_for_draws()
 		root_tree.game.check_for_checkmate()
-		if len(root_tree.game.legal_moves) == 0:
-			break
 		if not root_tree.game.stalemate:
-			best_node = max(root_tree.child_nodes, key=lambda child: child.number_of_visits)
-			# best_node = root_tree.select_child(root_tree.policy_vector_legal_moves)
+			# best_node = max(root_tree.child_nodes, key=lambda child: child.number_of_visits)
+			best_node = root_tree.select_child(root_tree.policy_vector_legal_moves)
 			root_tree = mcts.MCTS(starting_node=best_node)
 			move += 1
 			print(f"\nmade move number: {move}")
@@ -63,35 +62,34 @@ def assign_winner(examples: list[np.ndarray, list[float], None], white_win: bool
 	"""
 	# find the win value
 	if white_win:
-		white_addition = 1.0
-		black_addition = 0.0
+		white_addition: float = 1.0
+		black_addition: float = 0.0
 	elif white_win is False:
-		white_addition = 0.0
-		black_addition = 1.0
+		white_addition: float = 0.0
+		black_addition: float = 1.0
 	else:
-		white_addition = 0.5
-		black_addition = white_addition
+		white_addition: float = 0.5
+		black_addition: float = white_addition
 
 	# add the win value to the end of the example
 	for move_index in range(len(examples)):
 		if move_index % 2 == 1:
-			examples[move_index][-1] = white_addition
+			examples[move_index][-1]: float = white_addition
 		else:
-			examples[move_index][-1] = black_addition
+			examples[move_index][-1]: float = black_addition
 	return examples
 
 
-def train_ai(results: list[np.ndarray, list[float], float], value_net, policy_net):
+def train_ai(results: list[np.ndarray, list[float], float]):
 	"""
 	trains then saves the NNs
 	:param results: the results from the game
-	:param value_net: the value NN
-	:param policy_net: the policy NN
-	:return:
+	:return value_net: the value NN
+	:return policy_net: the policy NN
 	"""
 	# init new network
-	new_policy_net = ai.policy_NN()
-	# new_value_net = ai.value_NN()
+	new_policy_net = nn.policy_NN()
+	new_value_net = nn.value_NN()
 
 	# split apart the results list
 	results_bitboards = []
@@ -109,18 +107,15 @@ def train_ai(results: list[np.ndarray, list[float], float], value_net, policy_ne
 
 	# train the networks
 	new_policy_net.fit(tf_input_bitboards, tf_label_policies)
-	value_net.fit(tf_input_bitboards, tf_label_outcomes)
+	new_value_net.fit(tf_input_bitboards, tf_label_outcomes)
 
-	# save the networks
-	new_policy_net.save(NEW_POLICY_SAVE_PATH)
-	value_net.save(VALUE_SAVE_PATH)
-	policy_net.save(POLICY_SAVE_PATH)
+	print(tf_label_outcomes.numpy()[0], len(results_outcomes))
+	return new_policy_net, new_value_net
 
-	print(tf_label_outcomes.numpy())
 
 def view_train_game() -> (list[np.ndarray, list[float], None], bool):
 	"""
-	has the ai play against itself
+	has the ai play against itself with pygame board viewing enabled
 	:return examples: [bitboard, policy vector, evaluation, none] of move/board
 	:return white_win: whether white won the game
 	"""
@@ -144,27 +139,45 @@ def view_train_game() -> (list[np.ndarray, list[float], None], bool):
 		examples.append([root_tree.bitboard, root_tree.policy_vector, None])
 		root_tree.game.look_for_draws()
 		root_tree.game.check_for_checkmate()
-		if len(root_tree.game.legal_moves) == 0:
-			break
 		if not root_tree.game.stalemate:
 			# best_node = max(root_tree.child_nodes, key=lambda child: child.number_of_visits)
 			best_node = root_tree.select_child(root_tree.policy_vector_legal_moves)
 			root_tree = mcts.MCTS(starting_node=best_node)
 			move += 1
-			print(f"\nmade move number: {move}")
+			print(f"\nmade move number: {move}", root_tree)
 
 	print("game over")
-	pygame.quit()
+
+	# pygame.quit()
 	return examples, root_tree.game.white_win
+
+def write_data_to_csv(examples: list):
+	df = pd.DataFrame(examples)
+	df.to_csv("training_data.csv")
+
+def load_csv_data(path: str):
+	df = pd.read_csv(path)
+	return list(df)
+
+
+def train_one_network():
+	# todo: implement it so it can train and verify
+	# load the previous networks
+	save_addresses = nn.init_network_paths()
+	while True:
+		examples, white_win = view_train_game()
+		examples_with_result = assign_winner(examples, white_win)
+		new_policy_network, new_value_network = train_ai(examples_with_result)
+		nn.save_model(new_value_network, new_policy_network, nn.VALUE_NETWORK, nn.POLICY_NETWORK, save_addresses)
+
+
+
 
 
 if __name__ == "__main__":
-
 	start = time.time()
-	# run through one game of simulation
-	examples, white_win = view_train_game()
-	examples_with_result = assign_winner(examples, white_win)
-	train_ai(examples_with_result, VALUE_NETWORK, POLICY_NETWORK)
+
+	train_one_network()
 
 	end = time.time()
 	time_elapsed = end - start

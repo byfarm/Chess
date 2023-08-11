@@ -344,6 +344,8 @@ class MachineBoard:
 		:return in_check: bool
 			whether the move will put you in check or not
 		"""
+		# TODO: instead of copy temporarily move the piece then reset, need to make a new move funciton "temp move"
+		# complicated for castles and en pessant
 		copy_board = copy.deepcopy(self)
 
 		if e_passant is True:
