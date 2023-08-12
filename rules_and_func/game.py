@@ -39,6 +39,8 @@ class MachineBoard:
 		self.value = None
 		self.initialize_pieces()
 
+		self.check_board = Check_Board(pieces=self.pieces, board=self.board, move_turn=self.move_turn, oppo_turn=self.oppo_turn)
+
 		# find moves in position
 		self.legal_moves, self.castling_moves, self.captures, self.capturing_location = self.find_machine_moves()
 
@@ -68,6 +70,7 @@ class MachineBoard:
 				if pic.position == input_move:
 					self.pieces[enemy_piece[0]][enemy_piece[1]].remove(pic)
 					del pic
+					break
 
 		# reset the pieces object's position
 		for pic in self.pieces[piece[0]][piece[1]]:
@@ -204,7 +207,7 @@ class MachineBoard:
 		# outputs legal moves, castling_moves: check moves, and capturing squares
 		return legal_moves, castling_moves, capturing_squares, capturing_location
 
-	def play_machine_move(self, move: list[tuple, bool, list[bool, object, list[tuple]]]):
+	def play_machine_move(self, move: list[tuple, bool, list[bool, object, list[tuple]]], check_board=False):
 		"""
 		actually makes the move
 		:param move: tuple
@@ -253,6 +256,10 @@ class MachineBoard:
 		self.move_log.append(move)
 		# reset all the possible moves
 		self.next_turn()
+
+		# move the check board forward:
+		if check_board:
+			self.check_board.play_machine_move(move, check_board=False)
 
 		# find moves in position
 		self.legal_moves, self.castling_moves, self.captures, self.capturing_location = self.find_machine_moves()
@@ -326,7 +333,8 @@ class MachineBoard:
 			move_played = False
 
 		elif legal_move is True:
-			in_check = self.machine_move_in_check(original_position, new_position, e_passant)
+			in_check = self.check_board.check_if_move_makes_check((move, e_passant, castle))
+			# in_check = self.machine_move_in_check(original_position, new_position, e_passant)
 			# check for the in check is T or false
 			if in_check is False:
 				# set move to true
@@ -804,3 +812,102 @@ class MachineBoard:
 				white_eff_win = False
 
 		return white_eff_win
+
+	def streamiled_checker_beta(self):
+		pass
+
+
+class Check_Board(MachineBoard):
+	def __init__(self, board, pieces, move_turn, oppo_turn):
+		self.pieces = pieces
+		self.board = board
+		self.temporary_capture_piece = None
+		self.original_position = None
+		self.new_position = None
+		self.ep_opposing_pawn_position = None
+		self.move_log = []
+		self.move_turn = move_turn
+		self.oppo_turn = oppo_turn
+
+	def temp_move_forward(self, move: tuple[list[tuple], bool, bool]):
+		if move[1]:
+			return self.temp_move_en_pessant(move)
+		else:
+			# splice apart move
+			move = move[0]
+			self.original_position = move[0]
+			self.new_position = move[1]
+			self_piece = self.board[self.original_position]
+			opposing_piece = self.board[self.new_position]
+
+			# modify game board
+			self.board[self.original_position] = "EE"
+			self.board[self.new_position] = self_piece
+
+			# delete the captured piece
+			if opposing_piece[0] != "E":
+				for captured_piece in self.pieces[opposing_piece[0]][opposing_piece[1]]:
+					if captured_piece.position == self.new_position:
+						self.temporary_capture_piece = captured_piece
+						self.pieces[opposing_piece[0]][opposing_piece[1]].remove(captured_piece)
+						break
+
+			# change position of moved piece
+			for piece in self.pieces[self_piece[0]][self_piece[1]]:
+				if piece.position == self.original_position:
+					piece.position = self.new_position
+					return piece
+
+	def temp_move_backward(self, moved_piece: object):
+		moved_piece.position = self.original_position
+		if self.temporary_capture_piece:
+			self.pieces[self.temporary_capture_piece.name[0]][self.temporary_capture_piece.name[1]].append(self.temporary_capture_piece)
+			self.board[self.new_position] = self.temporary_capture_piece.name
+		else:
+			self.board[self.new_position] = "EE"
+		self.board[self.original_position] = moved_piece.name
+
+
+	def temp_move_backward_en_pessant(self, moved_piece: object):
+		moved_piece.position = self.original_position
+		self.pieces[self.temporary_capture_piece.name[0]][self.temporary_capture_piece.name[1]].append(self.temporary_capture_piece)
+		self.board[self.original_position] = moved_piece.name
+		self.board[self.new_position] = "EE"
+		self.board[self.ep_opposing_pawn_position] = self.temporary_capture_piece.name
+
+	def check_if_move_makes_check(self, move: tuple[list[tuple], bool, bool]):
+		moved_piece = self.temp_move_forward(move)
+
+		in_check = self.check_for_checks(self)
+
+		if move[1]:
+			self.temp_move_backward_en_pessant(moved_piece)
+		else:
+			self.temp_move_backward(moved_piece)
+		return in_check
+
+	def temp_move_en_pessant(self, move: tuple[list[tuple], bool, bool]):
+		# splice apart move
+		move = move[0]
+		self.original_position = move[0]
+		self.new_position = move[1]
+		self.ep_opposing_pawn_position = self.move_log[-1][0][1]
+		self_piece = self.board[self.original_position]
+		opposing_piece = self.board[self.ep_opposing_pawn_position]
+
+		# modify game board
+		self.board[self.original_position] = "EE"
+		self.board[self.new_position] = self_piece
+		self.board[self.ep_opposing_pawn_position] = "EE"
+
+		for captured_piece in self.pieces[opposing_piece[0]][opposing_piece[1]]:
+			if captured_piece.position == self.ep_opposing_pawn_position:
+				self.temporary_capture_piece = captured_piece
+				self.pieces[opposing_piece[0]][opposing_piece[1]].remove(captured_piece)
+				break
+
+		# change position of moved piece
+		for piece in self.pieces[self_piece[0]][self_piece[1]]:
+			if piece.position == self.original_position:
+				piece.position = self.new_position
+				return piece

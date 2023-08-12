@@ -2,6 +2,7 @@ from tensorflow import keras
 from tensorflow.keras import layers
 import tensorflow as tf
 gpus = tf.config.list_physical_devices('GPU')
+print(gpus)
 if gpus:
 	# Restrict TensorFlow to only allocate 1GB of memory on the first GPU
 	try:
