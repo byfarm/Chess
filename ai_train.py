@@ -141,7 +141,7 @@ def view_train_game() -> (list[np.ndarray, list[float], None], bool):
 			best_node = max(root_tree.child_nodes, key=lambda child: child.number_of_visits)
 			# best_node = root_tree.select_child(root_tree.policy_vector_legal_moves)
 			root_tree = mcts.MCTS(starting_node=best_node)
-			print(f"\nmade move number: {root_tree.game.move_counter}{root_tree.game.oppo_turn}", root_tree)
+			print(f"\nmade move number: {root_tree.game.move_counter}{root_tree.game.move_turn}", root_tree)
 
 			# the average chess game is around 40 moves. For training, we will let it go to 50 before assigning it a draw
 			if root_tree.game.move_counter > 50:
