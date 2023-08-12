@@ -1,6 +1,5 @@
 import numpy as np
 from rules_and_func.game import MachineBoard
-import AI.ai as ai
 import time
 import tensorflow as tf
 import pygame
@@ -130,7 +129,6 @@ def view_train_game() -> (list[np.ndarray, list[float], None], bool):
 	root_tree = mcts.MCTS(game)
 
 	# find the best move then play it and important info to exapmles
-	move = 0
 	while not root_tree.game.stalemate:
 		pygame.event.get()
 		draw_pieces(WIN, root_tree.game.pieces)
@@ -140,24 +138,54 @@ def view_train_game() -> (list[np.ndarray, list[float], None], bool):
 		root_tree.game.look_for_draws()
 		root_tree.game.check_for_checkmate()
 		if not root_tree.game.stalemate:
-			# best_node = max(root_tree.child_nodes, key=lambda child: child.number_of_visits)
-			best_node = root_tree.select_child(root_tree.policy_vector_legal_moves)
+			best_node = max(root_tree.child_nodes, key=lambda child: child.number_of_visits)
+			# best_node = root_tree.select_child(root_tree.policy_vector_legal_moves)
 			root_tree = mcts.MCTS(starting_node=best_node)
-			move += 1
-			print(f"\nmade move number: {move}", root_tree)
+			print(f"\nmade move number: {root_tree.game.move_counter}{root_tree.game.oppo_turn}", root_tree)
+
+			# the average chess game is around 40 moves. For training, we will let it go to 50 before assigning it a draw
+			if root_tree.game.move_counter > 50:
+				break
 
 	print("game over")
+	print(root_tree.game.board)
 
 	# pygame.quit()
 	return examples, root_tree.game.white_win
 
 def write_data_to_csv(examples: list):
 	df = pd.DataFrame(examples)
-	df.to_csv("training_data.csv")
+	df.to_csv("training_data.csv", mode="a")
 
 def load_csv_data(path: str):
 	df = pd.read_csv(path)
 	return list(df)
+
+def train_single_network(results: list):
+	# split apart the results list
+	results_bitboards = []
+	results_policies = []
+	results_outcomes = []
+	for move in results:
+		results_bitboards.append(move[0])
+		results_policies.append(move[1])
+		results_outcomes.append(move[2])
+
+	# change outcomes to tf
+	tf_input_bitboards = tf.concat(results_bitboards, axis=0)
+	tf_label_policies = tf.stack(results_policies)
+	tf_label_outcomes = tf.constant(results_outcomes)
+
+	# train the networks
+	nn.POLICY_NETWORK.fit(tf_input_bitboards, tf_label_policies)
+	nn.VALUE_NETWORK.fit(tf_input_bitboards, tf_label_outcomes)
+
+	print(f"Outcome: {tf_label_outcomes.numpy()[0]}, Number of moves: {len(results_outcomes)}")
+
+
+def save_single_model(value_address, policy_addres):
+	nn.VALUE_NETWORK.save(value_address)
+	nn.POLICY_NETWORK.save(policy_addres)
 
 
 def train_one_network():
@@ -171,13 +199,20 @@ def train_one_network():
 		nn.save_model(new_value_network, new_policy_network, nn.VALUE_NETWORK, nn.POLICY_NETWORK, save_addresses)
 
 
-
+def self_play_1_iteration():
+	# load the previous networks
+	value_path, policy_path = nn.init_single_network_paths()
+	examples, white_win = view_train_game()
+	examples_with_result = assign_winner(examples, white_win)
+	train_single_network(examples_with_result)
+	save_single_model(value_path, policy_path)
+	write_data_to_csv(examples_with_result)
 
 
 if __name__ == "__main__":
 	start = time.time()
-
-	train_one_network()
+	while True:
+		self_play_1_iteration()
 
 	end = time.time()
 	time_elapsed = end - start

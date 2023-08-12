@@ -31,7 +31,10 @@ class Game_Node(object):
 
 		# get the evaluation
 		self.bitboard = ai.to_bits(game)
-		self.value_evaluation = VALUE_NETWORK(self.bitboard).numpy()[0, 0]
+		if game.stalemate:
+			self.value_evaluation = game.white_win
+		else:
+			self.value_evaluation = VALUE_NETWORK(self.bitboard)
 
 		# init the policy vector
 		self.policy_vector = None
@@ -59,12 +62,12 @@ class Game_Node(object):
 
 		evaluations, ucb1_scores = self.find_child_node_information()
 
-		print("policy network")
-		policy_network_output = POLICY_NETWORK(self.bitboard)[0, :]
+		policy_network_output = POLICY_NETWORK(self.bitboard)
+		policy_network_probabilities = tf.divide(policy_network_output, tf.math.reduce_sum(policy_network_output))
 
 		number_possible_moves = len(self.game.legal_moves)
 
-		self.policy_vector_legal_moves = evaluations + ucb1_scores + policy_network_output[:number_possible_moves]
+		self.policy_vector_legal_moves = evaluations + ucb1_scores + policy_network_probabilities[0, :number_possible_moves]
 		self.policy_vector = tf.concat((self.policy_vector_legal_moves, tf.zeros(218 - number_possible_moves, float)), axis=0)
 
 	def find_child_node_information(self):
@@ -74,7 +77,9 @@ class Game_Node(object):
 			evaluations.append(node.value_evaluation)
 			ucb1_scores.append(node.get_ucb1_score())
 
-		return tf.constant(evaluations, dtype=float), tf.constant(ucb1_scores, dtype=float)
+		evals = tf.concat(evaluations, axis=0)
+
+		return tf.reshape(evals, (evals.shape[0], )), tf.constant(ucb1_scores, shape=(len(ucb1_scores),), dtype=float)
 
 	def init_all_children(self):
 		for move in self.game.legal_moves:
@@ -97,7 +102,7 @@ class Game_Node(object):
 		game.check_for_checkmate()
 		return game.white_win
 
-	def get_ucb1_score(self, exploration_constant: float=1.0) -> float:
+	def get_ucb1_score(self, exploration_constant: float=np.sqrt(2)) -> float:
 		"""
 		the UCB1 score of the position from the mcts
 		:param exploration_constant: the constant in the equation
@@ -172,11 +177,14 @@ def MCTS(game: object=None, starting_node: object=None, iterations: int=10) -> o
 			if selected_node.policy_vector_legal_moves is not None:
 				selected_node = selected_node.select_child(selected_node.policy_vector_legal_moves)
 			else:
-				selected_node.get_policy_vector()
+				if len(selected_node.game.legal_moves) > 0:
+					selected_node.get_policy_vector()
 
+		# back propogate the result
+		# self_win = selected_node.value_evaluation if selected_node.game.white_win is None else int(selected_node.game.white_win)
 		self_win = selected_node.value_evaluation
 		back_propagate(selected_node, self_win, selected_node.game.move_turn)
-		print(selected_node.game.move_counter - root.game.move_counter, selected_node)
+		print(f"depth: {selected_node.game.move_counter - root.game.move_counter},", f"Search number: {_+1},", f"Node score: {self_win}")
 
 	return root
 

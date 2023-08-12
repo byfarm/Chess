@@ -1,7 +1,5 @@
 import tensorflow as tf
 
-print(tf.config.list_physical_devices('GPU'))
-
 
 def to_bits(board: object) -> tf.Tensor:
 	"""
@@ -15,7 +13,7 @@ def to_bits(board: object) -> tf.Tensor:
 
 	for piece_color in board.pieces.keys():
 		for piece_type in board.pieces[piece_color].keys():
-			bit_dictionary[piece_color + piece_type] = tf.Variable(tf.zeros((8, 8), tf.int8))
+			bit_dictionary[piece_color + piece_type] = tf.Variable(tf.zeros((8, 8), tf.uint8))
 			for piece in board.pieces[piece_color][piece_type]:
 				bit_dictionary[piece.name][piece.position].assign(1)
 
@@ -24,8 +22,8 @@ def to_bits(board: object) -> tf.Tensor:
 	opponent_moves = opponent_moves_and_captures[0]
 	opponent_captures = opponent_moves_and_captures[-1]
 
-	bit_dictionary["w_moves"] = tf.Variable(tf.zeros((8, 8), tf.int8))
-	bit_dictionary["b_moves"] = tf.Variable(tf.zeros((8, 8), tf.int8))
+	bit_dictionary["w_moves"] = tf.Variable(tf.zeros((8, 8), tf.uint8))
+	bit_dictionary["b_moves"] = tf.Variable(tf.zeros((8, 8), tf.uint8))
 	# this adds values to the bitboards for the current move
 	key_turn = board.move_turn + "_moves"
 	for possible_moves in board.legal_moves:
@@ -38,8 +36,8 @@ def to_bits(board: object) -> tf.Tensor:
 		attacked_space = possible_moves[0][1]
 		bit_dictionary[key_turn][attacked_space].assign(1)
 
-	bit_dictionary["b_capture"] = tf.Variable(tf.zeros((8, 8), tf.int8))
-	bit_dictionary["w_capture"] = tf.Variable(tf.zeros((8, 8), tf.int8))
+	bit_dictionary["b_capture"] = tf.Variable(tf.zeros((8, 8), tf.uint8))
+	bit_dictionary["w_capture"] = tf.Variable(tf.zeros((8, 8), tf.uint8))
 	# adds values to the bitboards for opponent's captures
 	key_turn = board.oppo_turn + "_capture"
 	for possible_moves in opponent_captures:
@@ -54,7 +52,7 @@ def to_bits(board: object) -> tf.Tensor:
 
 	# ================ castling =======================
 	# layer for all legal castles
-	castling_bitboard = tf.Variable(tf.zeros((8, 8), tf.int8))
+	castling_bitboard = tf.Variable(tf.zeros((8, 8), tf.uint8))
 	for white_rook in board.pieces['w']['R']:
 		if not white_rook.moved and not board.pieces["w"]["K"][0].moved:
 			castling_bitboard[white_rook.position].assign(1)
@@ -67,9 +65,9 @@ def to_bits(board: object) -> tf.Tensor:
 	# ================== move turn =========================
 	# layer for the color
 	if board.move_turn == "w":
-		move_turn_bitboard = tf.zeros((8, 8), dtype=tf.int8)
+		move_turn_bitboard = tf.zeros((8, 8), dtype=tf.uint8)
 	else:
-		move_turn_bitboard = tf.ones((8, 8), dtype=tf.int8)
+		move_turn_bitboard = tf.ones((8, 8), dtype=tf.uint8)
 	bit_dictionary["move_turn"] = move_turn_bitboard
 
 	bitboard_list = [bit_dictionary[key] for key in bit_dictionary.keys()]

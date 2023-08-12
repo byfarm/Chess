@@ -1,7 +1,18 @@
 from tensorflow import keras
 from tensorflow.keras import layers
 import tensorflow as tf
-
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+	# Restrict TensorFlow to only allocate 1GB of memory on the first GPU
+	try:
+		tf.config.set_logical_device_configuration(
+        gpus[0],
+        [tf.config.LogicalDeviceConfiguration(memory_limit=15000)])
+		logical_gpus = tf.config.list_logical_devices('GPU')
+		print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+	except RuntimeError as e:
+		# Virtual devices must be set before GPUs have been initialized
+		print(e)
 
 def policy_NN():
 	tf.config.list_physical_devices('GPU')
@@ -65,6 +76,10 @@ def save_model(new_value_network: tf.keras.models, new_policy_network: tf, old_v
 	old_policy_network.save(policy_save_path)
 	old_value_network.save(value_save_path)
 
+def init_single_network_paths():
+	return "AI/neural_networks/value.keras", "AI/neural_networks/policy.keras"
 
-save_addresses = init_network_paths()
-POLICY_NETWORK, VALUE_NETWORK = load_model(False, save_addresses[-1], save_addresses[-2])
+
+value_path, policy_path = init_single_network_paths()
+POLICY_NETWORK, VALUE_NETWORK = load_model(new_model=False, policy_save_path=policy_path, value_save_path=value_path)
+print("model loaded")
