@@ -140,8 +140,10 @@ def view_train_game() -> (list[np.ndarray, list[float], None], bool):
 		if not root_tree.game.stalemate:
 			best_node = max(root_tree.child_nodes, key=lambda child: child.number_of_visits)
 			# best_node = root_tree.select_child(root_tree.policy_vector_legal_moves)
-			root_tree = mcts.MCTS(starting_node=best_node)
 			print(f"\nmade move number: {root_tree.game.move_counter}{root_tree.game.move_turn}", root_tree)
+			del root_tree
+			root_tree = mcts.MCTS(starting_node=best_node)
+
 
 			# the average chess game is around 40 moves. For training, we will let it go to 50 before assigning it a draw
 			if root_tree.game.move_counter > 50:
@@ -177,8 +179,8 @@ def train_single_network(results: list):
 	tf_label_outcomes = tf.constant(results_outcomes)
 
 	# train the networks
-	nn.POLICY_NETWORK.fit(tf_input_bitboards, tf_label_policies)
-	nn.VALUE_NETWORK.fit(tf_input_bitboards, tf_label_outcomes)
+	nn.POLICY_NETWORK.fit(tf_input_bitboards, tf_label_policies, epochs=4)
+	nn.VALUE_NETWORK.fit(tf_input_bitboards, tf_label_outcomes, epochs=4)
 
 	print(f"Outcome: {tf_label_outcomes.numpy()[0]}, Number of moves: {len(results_outcomes)}")
 

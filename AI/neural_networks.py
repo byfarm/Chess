@@ -1,7 +1,7 @@
 from tensorflow import keras
 from tensorflow.keras import layers
 import tensorflow as tf
-gpus = tf.config.list_physical_devices('GPU')
+"""gpus = tf.config.list_physical_devices('GPU')
 if gpus:
 	# Restrict TensorFlow to only allocate 1GB of memory on the first GPU
 	try:
@@ -12,7 +12,7 @@ if gpus:
 		print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
 	except RuntimeError as e:
 		# Virtual devices must be set before GPUs have been initialized
-		print(e)
+		print(e)"""
 
 def policy_NN():
 	tf.config.list_physical_devices('GPU')

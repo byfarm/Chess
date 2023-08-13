@@ -177,8 +177,7 @@ def MCTS(game: object=None, starting_node: object=None, iterations: int=10) -> o
 			if selected_node.policy_vector_legal_moves is not None:
 				selected_node = selected_node.select_child(selected_node.policy_vector_legal_moves)
 			else:
-				if len(selected_node.game.legal_moves) > 0:
-					selected_node.get_policy_vector()
+				selected_node.get_policy_vector()
 
 		# back propogate the result
 		# self_win = selected_node.value_evaluation if selected_node.game.white_win is None else int(selected_node.game.white_win)
