@@ -91,6 +91,28 @@ def human_play_move_display(tree: object, move: list[tuple]):
 		print('Invalid move, try again')
 		return False
 
+def human_move_nn(root_tree: object, move: list[tuple]):
+	"""
+		checks to see if the move is valid then plays the move
+		:param tree: the mc object, used to make the move
+		:param move: the input move from the human
+		:return:
+		"""
+	in_mach_move = None
+	game = root_tree.game
+
+	for i in game.legal_moves:
+		if i[0] == move:
+			in_mach_move = i
+			break
+
+	if in_mach_move is not None:
+		node_moved_to = root_tree.make_a_move(in_mach_move)
+		print('Human move made')
+		return True, node_moved_to
+	else:
+		print('Invalid move, try again')
+		return False, root_tree
 
 def move_selection_mc(tree: object, num_threads: int=1):
 	"""

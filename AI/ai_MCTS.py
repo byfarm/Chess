@@ -34,8 +34,7 @@ class Game_Node(object):
 		if game.stalemate:
 			self.value_evaluation = game.white_win
 		else:
-			self.value_evaluation = VALUE_NETWORK(self.bitboard)
-
+			self.value_evaluation = VALUE_NETWORK(self.bitboard).numpy()[0, 0]
 		# init the policy vector
 		self.policy_vector = None
 		self.policy_vector_legal_moves = None
@@ -44,9 +43,15 @@ class Game_Node(object):
 		self.child_nodes = []
 		self.visited_boards = []
 		self.wins = 0
+		self.terminal_game_state = False if len(self.game.legal_moves) > 0 else True
 
 	def __repr__(self):
 		return f'{self.move}'
+
+	def make_a_move(self, move: tuple[list[tuple]]):
+		for child_node in self.child_nodes:
+			if move == child_node.move:
+				return child_node
 
 	def get_policy_vector(self):
 		"""
@@ -77,9 +82,7 @@ class Game_Node(object):
 			evaluations.append(node.value_evaluation)
 			ucb1_scores.append(node.get_ucb1_score())
 
-		evals = tf.concat(evaluations, axis=0)
-
-		return tf.reshape(evals, (evals.shape[0], )), tf.constant(ucb1_scores, shape=(len(ucb1_scores),), dtype=float)
+		return tf.constant(evaluations, dtype=float), tf.constant(ucb1_scores, dtype=float)
 
 	def init_all_children(self):
 		for move in self.game.legal_moves:
@@ -123,6 +126,8 @@ class Game_Node(object):
 		:param move_probabilities: the output from the policy vector
 		:return best_move: the best move based on the policy vector in the position
 		"""
+		if len(move_probabilities) < 1:
+			print(self.child_nodes)
 		return self.child_nodes[tf.argmax(move_probabilities)]
 
 
@@ -145,7 +150,7 @@ def back_propagate(node: object, result: float, leaf_move_turn: str):
 		node = node.parent_node
 
 
-def MCTS(game: object=None, starting_node: object=None, iterations: int=10) -> object:
+def MCTS(game: object=None, starting_node: object=None, iterations: int=7) -> object:
 	"""
 	runs a monte carlo tree search on the current game/node
 	:param game: the origin game object
@@ -161,7 +166,10 @@ def MCTS(game: object=None, starting_node: object=None, iterations: int=10) -> o
 		root = starting_node
 		root.parent_node = False
 
+	if root.terminal_game_state:
+		return root
 	root.get_policy_vector()
+
 	# run through so many times by selecting a node, seeing if it is visited, if not then finding a new one and finding
 	# the outcome of it
 	for _ in range(iterations):
@@ -175,7 +183,10 @@ def MCTS(game: object=None, starting_node: object=None, iterations: int=10) -> o
 
 		while selected_node.number_of_visits > 0:
 			if selected_node.policy_vector_legal_moves is not None:
-				selected_node = selected_node.select_child(selected_node.policy_vector_legal_moves)
+				if not selected_node.terminal_game_state:
+					selected_node = selected_node.select_child(selected_node.policy_vector_legal_moves)
+				else:
+					break
 			else:
 				selected_node.get_policy_vector()
 

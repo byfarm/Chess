@@ -70,19 +70,10 @@ def to_bits(board: object) -> tf.Tensor:
 		move_turn_bitboard = tf.ones((8, 8), dtype=tf.uint8)
 	bit_dictionary["move_turn"] = move_turn_bitboard
 
-	bitboard_list = [bit_dictionary[key] for key in bit_dictionary.keys()]
-
 	# =================== combination ========================
+	bitboard_list = [bit_dictionary[key] for key in bit_dictionary.keys()]
 	# makes it into a tensorflow array
 	bitboard = tf.stack(bitboard_list)
-	"""# expands upon the bitboard so that every possible move has the move from and the move to
-	for i in range(14, 14 + 218):
-		try:
-			move = board.legal_moves[i][0]
-			bitboard[i, move[0][0], move[0][1]] = 1
-			bitboard[i, move[1][0], move[1][1]] = 1
-		except IndexError:
-			break"""
 
 	return tf.expand_dims(bitboard, axis=0)
 

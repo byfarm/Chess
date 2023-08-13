@@ -28,14 +28,14 @@ def policy_NN():
 	loss = keras.losses.CategoricalCrossentropy()
 	optim = keras.optimizers.Adam(learning_rate=0.2)
 	metrics = ["accuracy"]
-	policy.compile(optimizer=optim, loss=loss, metrics=metrics)
+	policy.compile(optimizer=optim, loss=loss, metrics=metrics, run_eagerly=True)
 	policy.summary()
 	return policy
 
 
 def value_NN():
 	# inits the value Neural Network
-	value = keras.models.Sequential(name="value")
+	value = keras.models.Sequential(name="value",)
 	value.add(layers.Conv2D(18, (2, 2), padding='valid', activation='relu', input_shape=(18, 8, 8)))
 	value.add(layers.MaxPool2D((2, 2)))
 	value.add(layers.Conv2D(32, (2, 2), activation='relu'))
@@ -46,7 +46,7 @@ def value_NN():
 	loss = keras.losses.MeanSquaredError()
 	optim = keras.optimizers.Adam(learning_rate=0.2)
 	metrics = ["accuracy"]
-	value.compile(optimizer=optim, loss=loss, metrics=metrics)
+	value.compile(optimizer=optim, loss=loss, metrics=metrics, run_eagerly=True)
 	value.summary()
 	return value
 

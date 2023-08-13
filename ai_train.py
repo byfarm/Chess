@@ -144,7 +144,6 @@ def view_train_game() -> (list[np.ndarray, list[float], None], bool):
 			del root_tree
 			root_tree = mcts.MCTS(starting_node=best_node)
 
-
 			# the average chess game is around 40 moves. For training, we will let it go to 50 before assigning it a draw
 			if root_tree.game.move_counter > 50:
 				break

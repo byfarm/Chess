@@ -90,3 +90,41 @@ def determine_winner(tree: object):
 		print('Black Wins')
 	else:
 		print('Game is Draw')
+
+def human_move_nn_display(tree: object, sq_selected: tuple, player_click: list[tuple]):
+	# makes a human move
+	legal_move = False
+	move_node = tree
+	# gets all events in pygame
+	for event in pygame.event.get():
+		if event.type == pygame.QUIT:
+			tree.game.stalemate = True
+
+		# if the event is a mouse press, it records the position and appends it to the click list
+		elif event.type == pygame.MOUSEBUTTONDOWN:
+			location = pygame.mouse.get_pos()  # x, y of location
+			m_col = location[0] // SQUARE_SIZE
+			m_row = location[1] // SQUARE_SIZE
+			if sq_selected == (m_row, m_col):
+				sq_selected = ()
+				player_click = []
+			else:
+				sq_selected = (m_row, m_col)
+				player_click.append(sq_selected)
+
+			# if 2 clicks have been made, then trys to make the move
+			if len(player_click) == 2:
+				legal_move, move_node = machine_functions.human_play_move_display(tree, player_click)
+
+	# returns a bool, if T, move played, F, move not played, None, invalid move
+	return legal_move, move_node
+
+def determine_winner_nn(tree: object):
+	# determines the winner of the game and prints to output
+	print()
+	if tree.game.white_win:
+		print('White Wins')
+	elif tree.game.white_win is False:
+		print('Black Wins')
+	else:
+		print('Game is Draw')
