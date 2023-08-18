@@ -178,8 +178,8 @@ def train_single_network(results: list):
 	tf_label_outcomes = tf.constant(results_outcomes)
 
 	# train the networks
-	nn.POLICY_NETWORK.fit(tf_input_bitboards, tf_label_policies, epochs=4)
-	nn.VALUE_NETWORK.fit(tf_input_bitboards, tf_label_outcomes, epochs=4)
+	nn.POLICY_NETWORK.fit(tf_input_bitboards, tf_label_policies)
+	nn.VALUE_NETWORK.fit(tf_input_bitboards, tf_label_outcomes)
 
 	print(f"Outcome: {tf_label_outcomes.numpy()[0]}, Number of moves: {len(results_outcomes)}")
 
