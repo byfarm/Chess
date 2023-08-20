@@ -211,11 +211,11 @@ def self_play_1_iteration():
 
 
 if __name__ == "__main__":
-	start = time.time()
 	while True:
+		start = time.time()
+		
 		self_play_1_iteration()
-
-	end = time.time()
+		end = time.time()
 	time_elapsed = end - start
 	print(f"\nTime elapsed: {time_elapsed} seconds\n")
 

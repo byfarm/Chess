@@ -1,6 +1,8 @@
+from rules_and_func import machine_functions
 from rules_and_func.game import *
 from rules_and_func.monte_carlo import *
 from rules_and_func.display_functions import *
+
 
 
 def main():
@@ -21,7 +23,7 @@ def main():
 
 		# update the game board
 		clock.tick(FPS)
-		draw_pieces(WIN, tree.h_node.game.board)
+		draw_pieces(WIN, tree.h_node.game.pieces)
 		pygame.display.update()
 
 		# loop through the game events

@@ -22,14 +22,13 @@ if __name__ == "__main__":
 	player_click = []
 	# while game is playing, draw the gamestate and update the display
 	while not root_tree.game.stalemate:
-		pygame.event.get()
+
 		df.draw_pieces(WIN, root_tree.game.pieces)
 		pygame.display.update()
 		clock.tick(df.FPS)
 
 		# if it is the human turn, play move. if move is played then reset the clicks, if not, cycle through
 		if turn == 'h':
-			print("Human move")
 			legal_move, root_tree = df.human_move_nn_display(root_tree, sq_selected, player_click)
 			df.draw_pieces(WIN, root_tree.game.pieces)
 			pygame.display.update()

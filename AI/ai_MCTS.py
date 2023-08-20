@@ -31,8 +31,13 @@ class Game_Node(object):
 
 		# get the evaluation
 		self.bitboard = ai.to_bits(game)
+		game.check_for_checkmate()
+		game.look_for_draws()
 		if game.stalemate:
-			self.value_evaluation = game.white_win
+			if game.white_win is not None:
+				self.value_evaluation = float(game.white_win)
+			else:
+				self.value_evaluation = 0.5
 		else:
 			self.value_evaluation = VALUE_NETWORK(self.bitboard).numpy()[0, 0]
 		# init the policy vector

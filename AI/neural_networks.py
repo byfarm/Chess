@@ -1,8 +1,8 @@
 from tensorflow import keras
 from tensorflow.keras import layers
 import tensorflow as tf
-"""gpus = tf.config.list_physical_devices('GPU')
-if gpus:
+print(tf.config.list_physical_devices('GPU'))
+"""if gpus:
 	# Restrict TensorFlow to only allocate 1GB of memory on the first GPU
 	try:
 		tf.config.set_logical_device_configuration(
@@ -81,5 +81,5 @@ def init_single_network_paths():
 
 
 value_path, policy_path = init_single_network_paths()
-POLICY_NETWORK, VALUE_NETWORK = load_model(new_model=False, policy_save_path=policy_path, value_save_path=value_path)
+POLICY_NETWORK, VALUE_NETWORK = load_model(new_model=True, policy_save_path=policy_path, value_save_path=value_path)
 print("model loaded")
