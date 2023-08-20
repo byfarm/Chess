@@ -20,7 +20,7 @@ def policy_NN():
 	policy = keras.models.Sequential(name="policy")
 	policy.add(layers.Conv2D(18, (2, 2), padding='valid', activation='relu', input_shape=(18, 8, 8)))
 	policy.add(layers.MaxPool2D((2, 2)))
-	policy.add(layers.Conv2D(28, (2, 2), activation='relu'))
+	policy.add(layers.Conv2D(12, (2, 2), activation='relu'))
 	policy.add(layers.MaxPool2D((2, 2)))
 	policy.add(layers.Flatten())
 	policy.add(layers.Dense(536, activation='relu'))
@@ -38,10 +38,10 @@ def value_NN():
 	value = keras.models.Sequential(name="value",)
 	value.add(layers.Conv2D(18, (2, 2), padding='valid', activation='relu', input_shape=(18, 8, 8)))
 	value.add(layers.MaxPool2D((2, 2)))
-	value.add(layers.Conv2D(32, (2, 2), activation='relu'))
+	value.add(layers.Conv2D(12, (2, 2), activation='relu'))
 	value.add(layers.MaxPool2D((2, 2)))
 	value.add(layers.Flatten())
-	value.add(layers.Dense(56, activation='relu'))
+	value.add(layers.Dense(32, activation='relu'))
 	value.add(layers.Dense(1, activation='relu'))
 	loss = keras.losses.MeanSquaredError()
 	optim = keras.optimizers.Adam(learning_rate=0.2)
@@ -81,5 +81,5 @@ def init_single_network_paths():
 
 
 value_path, policy_path = init_single_network_paths()
-POLICY_NETWORK, VALUE_NETWORK = load_model(new_model=True, policy_save_path=policy_path, value_save_path=value_path)
+POLICY_NETWORK, VALUE_NETWORK = load_model(new_model=False, policy_save_path=policy_path, value_save_path=value_path)
 print("model loaded")

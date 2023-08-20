@@ -1,7 +1,7 @@
 from rules_and_func.game import *
 import random
 import rules_and_func.static_functions as sf
-from pathos.pools import ProcessPool
+# from pathos.pools import ProcessPool
 
 
 def run_to_end(node: object, depth: int):

@@ -651,8 +651,8 @@ class MachineBoard:
 		# if there are no pieces left in play
 		elif len(pieces_in_play) == 0:
 			self.stalemate = True
-			return
-		#	self.print_board("Insufficient Material")
+			return "insufficient material"
+
 		# if there are two pieces left and they are both nights or bishops and they are on opposing sides
 		elif len(pieces_in_play) == 2 and (len(piece_dictionary['N']) == 2 or len(piece_dictionary['B']) == 2) and len(w_pieces) == 1:
 			if len(piece_dictionary['B']) == 2:
@@ -668,26 +668,27 @@ class MachineBoard:
 				# if on same colors, checkmate is still possible
 				if color[1] != color[0]:
 					self.stalemate = True
-			#		self.print_board("Insufficient Material")
+					return "insufficient material"
+
 			else:
 				self.stalemate = True
-			#	self.print_board("Insufficient Material")
+				return "insufficient material"
 
 		# if passes all prior conditions, check 50 move rule
 		if self.stalemate is False and self.move_counter > 50:
 			fif_move_rule = self.check_for_fifty_move_draw()
 			if fif_move_rule is True:
 				self.stalemate = True
-			#	self.print_board("Insufficient Material")
+				return "50 moves"
+
 		# if passes prior condition, check if 3 move repition is true
 		if self.stalemate is False and self.move_counter > 3:
 			three_rep = self.check_three_rep()
 			if three_rep is True:
 				self.stalemate = True
-			#	self.print_board("Insufficient Material")
+				return "3 move rep"
 
-		if self.stalemate is True:
-			self.white_win = None
+		return "no draw"
 
 	def check_for_fifty_move_draw(self):
 		"""

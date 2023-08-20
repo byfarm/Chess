@@ -146,8 +146,10 @@ def view_train_game() -> (list[np.ndarray, list[float], None], bool):
 
 			# the average chess game is around 40 moves. For training, we will let it go to 50 before assigning it a draw
 			if root_tree.game.move_counter > 50:
+				print("over 50 moves")
 				break
-
+	draw = root_tree.game.look_for_draws()
+	print(draw)
 	print("game over")
 	print(root_tree.game.board)
 
@@ -211,13 +213,12 @@ def self_play_1_iteration():
 
 
 if __name__ == "__main__":
-	while True:
+	for _ in range(2):
 		start = time.time()
-		
 		self_play_1_iteration()
 		end = time.time()
-	time_elapsed = end - start
-	print(f"\nTime elapsed: {time_elapsed} seconds\n")
+		time_elapsed = end - start
+		print(f"\nTime elapsed: {time_elapsed} seconds\n")
 
 
 
