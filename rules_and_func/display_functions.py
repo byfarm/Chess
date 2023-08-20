@@ -1,5 +1,5 @@
 import pygame
-#import rules_and_func.machine_functions as machine_functions
+from rules_and_func import machine_functions
 
 
 # constants
@@ -91,12 +91,15 @@ def determine_winner(tree: object):
 	else:
 		print('Game is Draw')
 
+
 def human_move_nn_display(tree: object, sq_selected: tuple, player_click: list[tuple]):
 	# makes a human move
 	legal_move = False
 	move_node = tree
+
 	# gets all events in pygame
 	for event in pygame.event.get():
+		print(event)
 		if event.type == pygame.QUIT:
 			tree.game.stalemate = True
 
@@ -114,7 +117,9 @@ def human_move_nn_display(tree: object, sq_selected: tuple, player_click: list[t
 
 			# if 2 clicks have been made, then trys to make the move
 			if len(player_click) == 2:
-				legal_move, move_node = machine_functions.human_play_move_display(tree, player_click)
+				legal_move, move_node = machine_functions.human_move_nn(tree, player_click)
+
+
 
 	# returns a bool, if T, move played, F, move not played, None, invalid move
 	return legal_move, move_node

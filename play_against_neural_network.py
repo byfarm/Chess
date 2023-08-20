@@ -1,9 +1,9 @@
-import AI.ai
+from rules_and_func import machine_functions
 import pygame
 import rules_and_func.display_functions as df
 from rules_and_func.game import MachineBoard
 from AI.ai_MCTS import MCTS
-import ai_train
+
 
 if __name__ == "__main__":
 	# TODO: not registering clicks
@@ -22,29 +22,45 @@ if __name__ == "__main__":
 	player_click = []
 	# while game is playing, draw the gamestate and update the display
 	while not root_tree.game.stalemate:
-
+		pygame.event.get()
 		df.draw_pieces(WIN, root_tree.game.pieces)
 		pygame.display.update()
 		clock.tick(df.FPS)
 
 		# if it is the human turn, play move. if move is played then reset the clicks, if not, cycle through
 		if turn == 'h':
-			legal_move, root_tree = df.human_move_nn_display(root_tree, sq_selected, player_click)
-			df.draw_pieces(WIN, root_tree.game.pieces)
-			pygame.display.update()
-			if legal_move:
-				turn = 'm'
-				sq_selected = ()
-				player_click = []
-			elif not legal_move:
-				sq_selected = ()
-				player_click = []
+			print("human's turn")
+			legal_move = False
+			while not legal_move:
+				# loop through the game events
+				for event in pygame.event.get():
+					if event.type == pygame.QUIT:
+						root_tree.game.stalemate = True
+
+					# if square pressed, get the location and add it to the moves
+					elif event.type == pygame.MOUSEBUTTONDOWN:
+						location = pygame.mouse.get_pos()
+						m_col = location[0] // df.SQUARE_SIZE
+						m_row = location[1] // df.SQUARE_SIZE
+						if sq_selected == (m_row, m_col):
+							sq_selected = ()
+							player_click = []
+						else:
+							sq_selected = (m_row, m_col)
+							player_click.append(sq_selected)
+
+						# if 2 clicks have happened try and play the move
+						if len(player_click) == 2:
+							legal_move, root_tree = machine_functions.human_move_nn(root_tree, player_click)
+							sq_selected = ()
+							player_click = []
+							turn = 'm'
 
 		# if it is the machine's turn, have the machine find a move and play it
 		elif turn == 'm':
 			print('caclulating move')
-			best_node = max(root_tree.child_nodes, key=lambda child: child.number_of_visits)
 			root_tree = MCTS(starting_node=root_tree)
+			root_tree = max(root_tree.child_nodes, key=lambda child: child.number_of_visits)
 			print('move played')
 			turn = 'h'
 

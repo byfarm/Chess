@@ -107,6 +107,7 @@ def human_move_nn(root_tree: object, move: list[tuple]):
 			break
 
 	if in_mach_move is not None:
+		root_tree.init_all_children()
 		node_moved_to = root_tree.make_a_move(in_mach_move)
 		print('Human move made')
 		return True, node_moved_to
