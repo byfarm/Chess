@@ -294,7 +294,7 @@ class GamesTree(object):
 		else:
 			if play is None:
 				# sorts the scores h to low
-				scores: list = [(i.score, i.play) for i in self.game_nodes]
+				scores: list = [(i.wins, i.play) for i in self.game_nodes]
 				s_scores, s_plays = sf.insert_sort_h_to_l(scores)
 
 				# chooses the best move and plays it

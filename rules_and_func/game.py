@@ -35,15 +35,15 @@ class MachineBoard:
 		self.past_boards = []
 
 		# initialize tree values
-		self.name = 'Head'
+		self.name = "Head"
 		self.value = None
 		self.initialize_pieces()
 
 		# find moves in position
-		self.legal_moves, self.c_moves, self.captures = self.find_machine_moves()
+		self.legal_moves, self.castling_moves, self.captures, self.capturing_location = self.find_machine_moves()
 
 	def __repr__(self):
-		return f'{self.name}'
+		return f'Chess Game'
 
 	def move(self, old_position: tuple, input_move: tuple):
 		"""
@@ -166,8 +166,9 @@ class MachineBoard:
 			[((4,5), (3,4), e_passant, [bool, rook, checked_spaces]), ... ]
 		"""
 		legal_moves = []
-		c_moves = []
-		cap = []
+		castling_moves = []
+		capturing_squares = []
+		capturing_location = []
 		# find pieces in same color
 		if color is None:
 			color = self.move_turn
@@ -194,15 +195,16 @@ class MachineBoard:
 								if castle is not None:
 									pass
 								if castle is None or not castle[0]:
-									c_moves.append(tot_mv[0])
+									castling_moves.append(tot_mv[0])
 								if capture is not None:
-									cap.append(capture)
+									capturing_squares.append(capture)
+									capturing_location.append(tot_mv[0])
 
 
-		# outputs legal moves, c_moves: check moves, and capturing squares
-		return legal_moves, c_moves, cap
+		# outputs legal moves, castling_moves: check moves, and capturing squares
+		return legal_moves, castling_moves, capturing_squares, capturing_location
 
-	def play_machine_move(self, move: tuple):
+	def play_machine_move(self, move: list[tuple, bool, list[bool, object, list[tuple]]]):
 		"""
 		actually makes the move
 		:param move: tuple
@@ -253,7 +255,7 @@ class MachineBoard:
 		self.next_turn()
 
 		# find moves in position
-		self.legal_moves, self.c_moves, self.captures = self.find_machine_moves()
+		self.legal_moves, self.castling_moves, self.captures, self.capturing_location = self.find_machine_moves()
 		#self.print_board(self.board)
 
 	def change_move_value(self, piece: str, new_position: tuple):
@@ -342,6 +344,8 @@ class MachineBoard:
 		:return in_check: bool
 			whether the move will put you in check or not
 		"""
+		# TODO: instead of copy temporarily move the piece then reset, need to make a new move funciton "temp move"
+		# complicated for castles and en pessant
 		copy_board = copy.deepcopy(self)
 
 		if e_passant is True:
@@ -647,7 +651,8 @@ class MachineBoard:
 		# if there are no pieces left in play
 		elif len(pieces_in_play) == 0:
 			self.stalemate = True
-		#	self.print_board("Insufficient Material")
+			return "insufficient material"
+
 		# if there are two pieces left and they are both nights or bishops and they are on opposing sides
 		elif len(pieces_in_play) == 2 and (len(piece_dictionary['N']) == 2 or len(piece_dictionary['B']) == 2) and len(w_pieces) == 1:
 			if len(piece_dictionary['B']) == 2:
@@ -663,26 +668,27 @@ class MachineBoard:
 				# if on same colors, checkmate is still possible
 				if color[1] != color[0]:
 					self.stalemate = True
-			#		self.print_board("Insufficient Material")
+					return "insufficient material"
+
 			else:
 				self.stalemate = True
-			#	self.print_board("Insufficient Material")
+				return "insufficient material"
 
 		# if passes all prior conditions, check 50 move rule
 		if self.stalemate is False and self.move_counter > 50:
 			fif_move_rule = self.check_for_fifty_move_draw()
 			if fif_move_rule is True:
 				self.stalemate = True
-			#	self.print_board("Insufficient Material")
+				return "50 moves"
+
 		# if passes prior condition, check if 3 move repition is true
 		if self.stalemate is False and self.move_counter > 3:
 			three_rep = self.check_three_rep()
 			if three_rep is True:
 				self.stalemate = True
-			#	self.print_board("Insufficient Material")
+				return "3 move rep"
 
-		if self.stalemate is True:
-			self.white_win = None
+		return "no draw"
 
 	def check_for_fifty_move_draw(self):
 		"""

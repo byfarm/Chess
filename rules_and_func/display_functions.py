@@ -1,5 +1,5 @@
 import pygame
-import rules_and_func.machine_functions as machine_functions
+from rules_and_func import machine_functions
 
 
 # constants
@@ -28,17 +28,16 @@ def init_pieces():
 	# adds all the pieces for the board
 	pieces = ['wP', 'wR', 'wN', 'wB', 'wQ', 'wK', 'bQ', 'bK', 'bB', 'bN', 'bR', 'bP']
 	for piece in pieces:
-		IMAGES[piece] = pygame.transform.scale(pygame.image.load(f'images/{piece}.png'), (SQUARE_SIZE, SQUARE_SIZE))
+		IMAGES[piece] = pygame.transform.scale(pygame.image.load(f'C:/Users/bucks/OneDrive/Documents/coding/Python/chess/final_version/images/{piece}.png'), (SQUARE_SIZE, SQUARE_SIZE))
 
 
-def draw_pieces(win: pygame, board):
-	# draws all the pieces on the board
+def draw_pieces(win: pygame, piece_dictionary: dict):
 	draw_squares(win)
-	for row in range(ROWS):
-		for col in range(COLS):
-			piece = board[(row, col)]
-			if piece != 'EE':
-				win.blit(IMAGES[piece], pygame.Rect(col*SQUARE_SIZE, row*SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
+	for color in piece_dictionary.values():
+		for piece_type in color.values():
+			for piece in piece_type:
+				row, col = piece.position
+				win.blit(IMAGES[piece.name], pygame.Rect(col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
 
 
 def select_color():
@@ -88,6 +87,49 @@ def determine_winner(tree: object):
 	if tree.h_node.game.white_win:
 		print('White Wins')
 	elif tree.h_node.game.white_win is False:
+		print('Black Wins')
+	else:
+		print('Game is Draw')
+
+
+def human_move_nn_display(tree: object, sq_selected: tuple, player_click: list[tuple]):
+	# makes a human move
+	legal_move = False
+	move_node = tree
+
+	# gets all events in pygame
+	for event in pygame.event.get():
+		print(event)
+		if event.type == pygame.QUIT:
+			tree.game.stalemate = True
+
+		# if the event is a mouse press, it records the position and appends it to the click list
+		elif event.type == pygame.MOUSEBUTTONDOWN:
+			location = pygame.mouse.get_pos()  # x, y of location
+			m_col = location[0] // SQUARE_SIZE
+			m_row = location[1] // SQUARE_SIZE
+			if sq_selected == (m_row, m_col):
+				sq_selected = ()
+				player_click = []
+			else:
+				sq_selected = (m_row, m_col)
+				player_click.append(sq_selected)
+
+			# if 2 clicks have been made, then trys to make the move
+			if len(player_click) == 2:
+				legal_move, move_node = machine_functions.human_move_nn(tree, player_click)
+
+
+
+	# returns a bool, if T, move played, F, move not played, None, invalid move
+	return legal_move, move_node
+
+def determine_winner_nn(tree: object):
+	# determines the winner of the game and prints to output
+	print()
+	if tree.game.white_win:
+		print('White Wins')
+	elif tree.game.white_win is False:
 		print('Black Wins')
 	else:
 		print('Game is Draw')
