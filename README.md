@@ -1,15 +1,14 @@
 
 "# chess"
 
-This is a chess game created from scratch during my time in Auckland, New Zealand.
+This is a chess game created from scratch during my time in Auckland, New Zealand. The AI engine is modeled after the AlphaZero algorithm developed by DeepMind in the 2010's. Due to the recources needed to train this algorithm (DeepMind used 500 TPU's over the span of several days), my implementation is not highly rated. That being said, if you would like to play against the engine (which is effectively just a random move generator at this point) you can run the "play_against_neural_network.py" file.
 
-To play a game, navigate to the "final_version" folder and select the "play against human" file if you would like to play against another person, or the "play against machine" file if you would like yo play against the computer.
+If you and another person would like to play, simply run the "play_against_human.py" file. This pops up a board on the screen. The way to move your pieces is to click on the piece, then click on the square you want to move it to. White moves first!
 
-If playing against a human, within the "play against human" file, simply run it and a chess board should appear. To move, click on the piece you want to move, then click on the square you want to move it to. If you have selected an illegal move, there will be a message the pops up in the command window saying, "Illegal move, try again." Note that you must wait for the piece to move on the board until you select the next move.
+The game implementation is coded from scratch, will almost all moves available including promotion to queen, castling, and en passant. The only move unavailable is underpromotion. The implementation uses pygame for the display and object oriented programming to create the board and pieces. 
 
-To play against the computer, within the "play against machine" file, simply run the file. In the command window, a promt will show up asking you to select which color you want to play with. To select white, enter "w", if you would like to select black, enter "b". A pygame window will then apear that you must select. If you selected black, the computer will imediatly start calculating the first move, otherwise, play the first move and good luck!
+The neural network is modeled after the AlphaZero algorithm developed by DeepMind (https://arxiv.org/pdf/1712.01815.pdf). It uses a policy network to produce a probability vector of the next moves in the position, and a value network to predict the likelihood of winning in that position. These two networks are both used in a monte carlo tree search which semi-randomly selects the next move to explore, then greedily picks the next move to play based on the visit count to that position. 
 
-The game currently works using an evaluation function combined with a Monte Carlo Search Tree. Due to limitations of my computer, the tree only has a depth of one.
+Please have a look around and if you have any suggestions please let me know!
 
-I am currently working on improving the evaluation function, and creating a minimax search tree to improve the engine. Have fun!
 "# chessr" 
